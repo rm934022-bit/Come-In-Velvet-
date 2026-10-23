@@ -59,18 +59,19 @@ const LEVEL_META = [
 ];
 
 const WRONG_PASSWORDS = [
-  '"Uhh... Open Sesame?"',
-  '"Full Moon Fever?"',
-  '"Spooky Scary Skeletons?"',
-  '"Trick or Treat... I think?"',
-  '"Hocus Pocus... maybe?"'
+  'RED ECLIPSE',
+  'FULL MOON FEVER',
+  'SPOOKY SKELETONS',
+  'HOCUS POCUS',
+  'MIDNIGHT HOWL',
+  'CRIMSON FANG'
 ];
 
 function getRightPasswords(pass) {
   return [
-    `"The secret password is ${pass}, of course!"`,
-    `"Whispering: ${pass}! Happy Halloween, Velvet!"`,
-    `"${pass}! Wouldn't miss your party for the world!"`
+    `"The secret password is '${pass}', of course!"`,
+    `"Leaning in: '${pass}'! Happy Halloween, Velvet!"`,
+    `"It's '${pass}'! Wouldn't miss your manor party!"`
   ];
 }
 
@@ -81,30 +82,37 @@ function getRulesForHour(hourIndex, levelIndex = 0) {
   const rules = [
     {
       title: 'Rule #1: Secret Password',
-      desc: `All guests must know this stage's password: "${lvl.password}".`
+      desc: `Guest must state tonight's exact password: "${lvl.password}".`
     },
     {
       title: 'Rule #2: Footwear Check',
-      desc: 'NO Muddy Swamp Boots allowed inside!'
+      desc: 'NO Muddy / Bog-Slime Boots allowed on the manor carpets!'
+    },
+    {
+      title: 'Rule #3: Official Ticket Code',
+      desc: 'Valid tickets start with "VV-" and end in an EVEN digit (0, 2, 4, 6, 8).'
+    },
+    {
+      title: 'Rule #4: VIP Costume Roster',
+      desc: 'Guest\'s Costume must match their Name on the Official VIP Roster!'
     }
   ];
 
-  if (effectiveTier >= 1) {
-    rules.push({
-      title: 'Rule #3: Official Ticket Code',
-      desc: 'Valid tickets start with "VV-" and end in an EVEN number (e.g., VV-204).'
-    });
-  }
-
-  if (effectiveTier >= 2) {
-    rules.push({
-      title: 'Rule #4: VIP Costume Match',
-      desc: 'Impostors are stealing names! Guest\'s Costume must match the VIP Roster!'
-    });
-  }
-
   return rules;
 }
+
+const CLEAN_SHOES = [
+  'Polished Dress Shoes',
+  'Velvet Ballroom Loafers',
+  'Silver-Buckle Heels',
+  'Clean Spats & Oxfords'
+];
+
+const MUDDY_SHOES = [
+  'Mud-Caked Swamp Boots',
+  'Bog-Slime Galoshes',
+  'Dripping Marsh Waders'
+];
 
 function generateDoorGuest(hourIndex, levelIndex = 0) {
   const lvl = LEVEL_META[levelIndex] || LEVEL_META[0];
@@ -116,7 +124,7 @@ function generateDoorGuest(hourIndex, levelIndex = 0) {
   let name = vip.name;
   let costume = vip.costume;
   let item = ITEMS_CLEAN[Math.floor(Math.random() * ITEMS_CLEAN.length)];
-  let shoes = 'Polished Dress Shoes';
+  let shoes = CLEAN_SHOES[Math.floor(Math.random() * CLEAN_SHOES.length)];
   let hasMuddyBoots = false;
 
   const evenDigits = [0, 2, 4, 6, 8];
@@ -125,27 +133,29 @@ function generateDoorGuest(hourIndex, levelIndex = 0) {
   let ticketCode = `VV-${midDigits}${evenDigits[Math.floor(Math.random() * evenDigits.length)]}`;
 
   let knowsPassword = true;
+  let passwordClaim = lvl.password;
   const rightList = getRightPasswords(lvl.password);
   let passwordLine = rightList[Math.floor(Math.random() * rightList.length)];
   let violationReason = null;
 
   if (!isInvited) {
-    const possibleFlaws = ['wrong_password', 'muddy_boots'];
-    if (effectiveTier >= 1) possibleFlaws.push('fake_ticket', 'fake_ticket');
-    if (effectiveTier >= 2) possibleFlaws.push('wrong_costume', 'wrong_costume');
+    const possibleFlaws = ['wrong_password', 'muddy_boots', 'fake_ticket', 'wrong_costume'];
+    if (effectiveTier >= 1) possibleFlaws.push('fake_ticket');
+    if (effectiveTier >= 2) possibleFlaws.push('wrong_costume');
 
     const flaw = possibleFlaws[Math.floor(Math.random() * possibleFlaws.length)];
 
     if (flaw === 'wrong_password') {
       knowsPassword = false;
-      passwordLine = WRONG_PASSWORDS[Math.floor(Math.random() * WRONG_PASSWORDS.length)];
-      violationReason = `Did not know the secret password ("${lvl.password}")!`;
+      passwordClaim = WRONG_PASSWORDS[Math.floor(Math.random() * WRONG_PASSWORDS.length)];
+      passwordLine = `"Sure, I know the password! Tonight's phrase is '${passwordClaim}'."`;
+      violationReason = `Gave wrong password ("${passwordClaim}" instead of "${lvl.password}")!`;
     } else if (flaw === 'muddy_boots') {
       hasMuddyBoots = true;
-      shoes = 'Muddy Swamp Boots (Dripping Bog Slime!)';
-      violationReason = 'Wearing Muddy Swamp Boots!';
+      shoes = MUDDY_SHOES[Math.floor(Math.random() * MUDDY_SHOES.length)];
+      violationReason = `Wearing dirty footwear (${shoes})!`;
     } else if (flaw === 'fake_ticket') {
-      if (Math.random() < 0.5) {
+      if (Math.random() < 0.45) {
         ticketCode = `XX-${midDigits}${evenDigits[0]}`;
         violationReason = `Counterfeit ticket prefix (${ticketCode} instead of VV-)!`;
       } else {
@@ -156,24 +166,25 @@ function generateDoorGuest(hourIndex, levelIndex = 0) {
     } else if (flaw === 'wrong_costume') {
       const otherCostumes = COSTUME_TYPES.filter(c => c !== vip.costume);
       costume = otherCostumes[Math.floor(Math.random() * otherCostumes.length)];
-      violationReason = `Impostor! ${vip.name} is supposed to be a ${vip.costume}, not a ${costume}!`;
+      violationReason = `Impostor! ${vip.name} wears ${vip.costume}, not ${costume}!`;
     }
   }
 
   const greetings = [
-    `"Good evening, Velvet! Is the party jumping yet?"`,
-    `"Ooooh, the manor looks delightfully spooky tonight!"`,
-    `"Brrr! It's chilly outside. Can I come in?"`,
-    `"Hey Velvet! I brought my best spooky vibes!"`
+    `"Good evening, Velvet! May I step inside the manor?"`,
+    `"Ooooh, the manor looks delightfully spooky tonight! Checking guests in?"`,
+    `"Brrr! It's chilly by the gate. Ready for my inspection, Velvet!"`,
+    `"Hey Velvet! I'm here for the Halloween party—ask away!"`
   ];
 
-  const idResponses = isInvited || violationReason !== `Impostor! ${vip.name} is supposed to be a ${vip.costume}, not a ${costume}!`
-    ? `"I'm ${name}! Here is my invitation ticket: ${ticketCode}."`
-    : `"Er... I am totally ${name}! Pay no attention to my ${costume} outfit! Ticket: ${ticketCode}."`;
+  const idResponses = [
+    `"I'm ${name}, dressed as a ${costume}. Here is my ticket stub: ${ticketCode}."`,
+    `"My name is ${name}! You can check my ticket number right here: ${ticketCode}."`
+  ];
 
   const inspectResponses = hasMuddyBoots
-    ? `"Ack! Don't look at my feet! I took a shortcut through the Haunted Bog..."`
-    : `"Just wearing my finest ${costume} attire, holding a ${item}, and ${shoes}!"`;
+    ? `"Here, take a look—I'm carrying a ${item} and wearing my ${shoes}."`
+    : `"Go ahead and check! Carrying a ${item} and wearing my ${shoes}."`;
 
   return {
     id: 'guest_' + Math.random().toString(36).slice(2, 9),
@@ -184,12 +195,13 @@ function generateDoorGuest(hourIndex, levelIndex = 0) {
     hasMuddyBoots,
     ticketCode,
     knowsPassword,
+    passwordClaim,
     expectedPassword: lvl.password,
     passwordLine,
     isInvited,
     violationReason,
     greeting: greetings[Math.floor(Math.random() * greetings.length)],
-    idResponse: idResponses,
+    idResponse: idResponses[Math.floor(Math.random() * idResponses.length)],
     inspectResponse: inspectResponses,
     cluesFound: [],
     askedId: false,

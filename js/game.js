@@ -635,8 +635,6 @@ class ComeInVelvetGame {
           this.ui.askQuestion('pass');
         } else if (code === 'Digit3') {
           this.ui.askQuestion('inspect');
-        } else if (code === 'KeyR') {
-          this.ui.btnPeekRules.click();
         } else if (code === 'KeyF') {
           this.resolveDoorGuest(true);
         } else if (code === 'KeyX') {

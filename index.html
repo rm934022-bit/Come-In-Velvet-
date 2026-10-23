@@ -27,87 +27,113 @@
 
         <canvas id="game-canvas" width="1280" height="720"></canvas>
 
-        <!-- GameMaker RPG-Style Interrogation Dialogue Box -->
+        <!-- GameMaker Chat Interrogation & Manual Detective Clipboard Modal -->
         <div id="question-modal" class="gm-dialogue-box hidden">
-          <!-- Top Strip: Step Tabs + Rules Toggle -->
+          <!-- Top Bar -->
           <div class="gm-dlg-topbar">
-            <div class="gm-step-tabs">
-              <span class="gm-label">CHECK:</span>
-              <button class="step-dot" id="step-dot-1">[1] TICKET</button>
-              <button class="step-dot" id="step-dot-2">[2] PASSWORD</button>
-              <button class="step-dot" id="step-dot-3">[3] BOOTS</button>
+            <div class="gm-desk-title">
+              <span class="gm-badge-tag">FRONT DOOR INTERROGATION</span>
+              <span class="gm-top-hint">Ask questions in chat &amp; manually verify the visitor's answers against the Rules Clipboard!</span>
             </div>
-
-            <div id="qm-clues-strip" class="gm-clues-strip">
-              <span class="clue-placeholder">PRESS [SPACE] TO INTERROGATE</span>
-            </div>
-
             <div class="gm-dlg-tools">
-              <button id="btn-peek-rules" class="gm-btn-small">RULES (<span id="qm-hour-label">9:00 PM</span>)</button>
+              <span class="gm-clock-pill" id="qm-hour-label">9:00 PM</span>
               <button id="qm-close" class="gm-btn-close" title="Step Back [ESC]">X</button>
             </div>
           </div>
 
-          <!-- Collapsible Parchment Rules Note -->
-          <div id="qm-rules-popover" class="gm-rules-note hidden">
-            <div class="gm-note-title">GATEKEEPER ORDERS</div>
-            <div id="qm-rules-content" class="qm-rules-scroll"></div>
-          </div>
+          <!-- 2-Column Main Body: Left = Chat & Question Choices | Right = Manual Verification Clipboard -->
+          <div class="gm-interrogate-split">
+            <!-- LEFT COLUMN: Portraits + Chat Log + Question Options -->
+            <div class="gm-chat-panel">
+              <!-- Speaker Portraits Header -->
+              <div class="gm-chat-actors">
+                <div class="gm-actor-chip velvet-chip" id="qm-velvet-card">
+                  <canvas id="qm-velvet-portrait" width="60" height="60"></canvas>
+                  <div class="gm-actor-meta">
+                    <div class="gm-actor-name">VELVET</div>
+                    <div class="gm-actor-role" id="qm-velvet-mood">GATEKEEPER</div>
+                  </div>
+                </div>
 
-          <!-- Main RPG Portrait & Dialogue Stage -->
-          <div class="gm-dlg-main">
-            <!-- Left Portrait: Velvet -->
-            <div class="gm-portrait-box velvet-box" id="qm-velvet-card">
-              <div class="gm-portrait-frame">
-                <canvas id="qm-velvet-portrait" width="96" height="96"></canvas>
+                <div class="gm-vs-divider">VS</div>
+
+                <div class="gm-actor-chip guest-chip" id="qm-guest-card">
+                  <div class="gm-actor-meta right">
+                    <div class="gm-actor-name" id="qm-guest-name">UNKNOWN VISITOR</div>
+                    <div class="gm-actor-role" id="qm-guest-costume">COSTUME: ???</div>
+                  </div>
+                  <div class="gm-guest-avatar-wrap">
+                    <canvas id="qm-portrait" width="64" height="64"></canvas>
+                    <div id="qm-scan-beam" class="qm-scan-beam hidden"></div>
+                  </div>
+                </div>
               </div>
-              <div class="gm-nameplate">VELVET</div>
-              <div class="gm-moodplate" id="qm-velvet-mood">GATEKEEPER</div>
+
+              <!-- Scrollable Conversation Chat Feed -->
+              <div id="qm-chat-log" class="gm-chat-log"></div>
+
+              <!-- Question Options to Ask -->
+              <div class="gm-question-options">
+                <div class="gm-q-header">CHOOSE A QUESTION TO ASK ([1] [2] [3] OR [SPACE]):</div>
+                <button type="button" class="gm-q-btn" id="step-dot-1">
+                  <span class="q-key">[1]</span>
+                  <span class="q-text">"State your name and show me your invitation ticket!"</span>
+                  <span class="q-tag" id="q-status-1">ASK</span>
+                </button>
+                <button type="button" class="gm-q-btn" id="step-dot-2">
+                  <span class="q-key">[2]</span>
+                  <span class="q-text">"Lean in close... What is tonight's secret password?"</span>
+                  <span class="q-tag" id="q-status-2">ASK</span>
+                </button>
+                <button type="button" class="gm-q-btn" id="step-dot-3">
+                  <span class="q-key">[3]</span>
+                  <span class="q-text">"Step into the lantern light — let me inspect your boots!"</span>
+                  <span class="q-tag" id="q-status-3">ASK</span>
+                </button>
+              </div>
             </div>
 
-            <!-- Center Text Box -->
-            <div class="gm-textbox-col">
-              <!-- Velvet's Prompt Line -->
-              <div id="qm-velvet-bubble" class="gm-velvet-line hidden">
-                <span class="gm-speaker-tag">VELVET:</span>
-                <span id="qm-velvet-text">"Hold it! Name and ticket, please!"</span>
+            <!-- RIGHT COLUMN: Manual Detective Clipboard (No Auto-Spoilers!) -->
+            <div class="gm-clipboard-panel">
+              <!-- 1. Visitor's Claimed Evidence (Neutral — Click to toggle your own ✓/✕ notes!) -->
+              <div class="gm-clip-box">
+                <div class="gm-clip-title">VISITOR'S CLAIMS (CLICK TO MARK ✓/✕)</div>
+                <div class="gm-claims-list">
+                  <div class="gm-claim-row" id="claim-row-1" title="Click to cycle your manual note ( ? / ✓ / ✕ )">
+                    <span class="claim-label">ID &amp; TICKET:</span>
+                    <span class="claim-val" id="ev-body-1">Not asked yet</span>
+                    <span class="claim-mark" id="ev-mark-1">[?]</span>
+                  </div>
+                  <div class="gm-claim-row" id="claim-row-2" title="Click to cycle your manual note ( ? / ✓ / ✕ )">
+                    <span class="claim-label">PASSWORD:</span>
+                    <span class="claim-val" id="ev-body-2">Not asked yet</span>
+                    <span class="claim-mark" id="ev-mark-2">[?]</span>
+                  </div>
+                  <div class="gm-claim-row" id="claim-row-3" title="Click to cycle your manual note ( ? / ✓ / ✕ )">
+                    <span class="claim-label">FOOTWEAR:</span>
+                    <span class="claim-val" id="ev-body-3">Not inspected yet</span>
+                    <span class="claim-mark" id="ev-mark-3">[?]</span>
+                  </div>
+                </div>
               </div>
 
-              <!-- Physical Ticket / Evidence Slip -->
-              <div id="qm-evidence-prop" class="gm-evidence-slip hidden"></div>
-
-              <!-- Visitor's Speech Box -->
-              <div id="qm-guest-bubble" class="gm-speech-box">
-                <div class="gm-speaker-header" id="qm-speaker-label">VISITOR:</div>
-                <p id="qm-speech-text">"Trick or treat! Let me into the party, Velvet!"</p>
-                <span class="gm-blink-cursor">▼</span>
+              <!-- 2. Official Security Rules & VIP Roster Reference -->
+              <div class="gm-clip-box rules-ref-box">
+                <div class="gm-clip-title">OFFICIAL RULES &amp; VIP ROSTER (CHECK MANUALLY!)</div>
+                <div id="qm-rules-content" class="qm-rules-scroll"></div>
               </div>
-            </div>
 
-            <!-- Right Portrait: Visitor -->
-            <div class="gm-portrait-box guest-box" id="qm-guest-card">
-              <div class="gm-portrait-frame">
-                <canvas id="qm-portrait" width="106" height="106"></canvas>
-                <div id="qm-scan-beam" class="qm-scan-beam hidden"></div>
+              <!-- 3. Final Verdict Buttons -->
+              <div class="gm-verdict-box">
+                <button id="btn-admit" class="gm-cmd-btn admit-cmd">
+                  ✓ ADMIT [F]
+                  <span class="cmd-sub">Telling the Truth</span>
+                </button>
+                <button id="btn-reject" class="gm-cmd-btn reject-cmd">
+                  ✕ REJECT! [X]
+                  <span class="cmd-sub">Caught Lying!</span>
+                </button>
               </div>
-              <div class="gm-nameplate" id="qm-guest-name">???</div>
-              <div class="gm-moodplate" id="qm-guest-costume">UNKNOWN</div>
-            </div>
-          </div>
-
-          <!-- Bottom Command Bar -->
-          <div class="gm-dlg-footer">
-            <button id="btn-next-question" class="gm-cmd-btn next-cmd">
-              ► ASK QUESTION 1/3: TICKET &amp; ID [SPACE]
-            </button>
-
-            <div class="gm-verdict-cmds">
-              <button id="btn-admit" class="gm-cmd-btn admit-cmd">
-                [F] ADMIT GUEST
-              </button>
-              <button id="btn-reject" class="gm-cmd-btn reject-cmd">
-                [X] UNINVITED!
-              </button>
             </div>
           </div>
         </div>

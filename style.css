@@ -140,152 +140,79 @@ body {
 }
 
 /* ============================================================================
-   GameMaker Classic 9-Slice RPG Dialogue Box (Crisp & Easy to Study)
+   GameMaker Chat Interrogation & Manual Detective Clipboard Modal
    ============================================================================ */
 .gm-dialogue-box {
   position: absolute;
-  bottom: 14px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  width: min(900px, 96%);
+  transform: translate(-50%, -48%);
+  width: min(1040px, 96%);
+  max-height: calc(100% - 56px);
   background: var(--gm-box-bg);
   border: 4px solid var(--gm-border-light);
   outline: 4px solid var(--gm-border-dark);
   box-shadow:
     inset 0 0 0 3px #4b2b78,
-    8px 8px 0px #05020a;
+    10px 10px 0px #05020a;
   padding: 12px 16px;
   z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* Top Strip inside Dialogue Box */
+/* Top Bar */
 .gm-dlg-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   padding-bottom: 8px;
-  margin-bottom: 10px;
   border-bottom: 2px solid #452870;
 }
 
-.gm-step-tabs {
+.gm-desk-title {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.gm-label {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 0.85rem;
-  color: var(--gm-gold);
-  margin-right: 2px;
-  text-shadow: 1px 1px 0 #000;
-}
-
-.step-dot {
-  background: #1f1136;
-  color: #d7c6f0;
-  border: 2px solid #5e3b91;
-  box-shadow: 2px 2px 0 #000;
-  padding: 4px 10px;
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 0.84rem;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-}
-
-.step-dot:hover {
-  border-color: var(--gm-cream);
-  color: #fff;
-}
-
-.step-dot.active {
-  background: var(--gm-orange);
-  color: #12061f;
-  border-color: var(--gm-cream);
-  font-weight: 700;
-}
-
-.step-dot.done-ok {
-  background: #123828;
-  color: #6bf0b3;
-  border-color: var(--gm-green);
-}
-
-.step-dot.done-sus {
-  background: #471220;
-  color: #ff99a8;
-  border-color: var(--gm-red);
-}
-
-/* Clues Strip */
-.gm-clues-strip {
-  flex: 1;
-  display: flex;
+  gap: 10px;
   flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: #0c0617;
-  border: 2px solid #351d57;
-  padding: 5px 10px;
-  min-height: 32px;
 }
 
-.clue-placeholder {
+.gm-badge-tag {
+  background: var(--gm-gold);
+  color: #12061f;
   font-family: var(--font-pixel);
-  font-weight: 600;
-  font-size: 0.84rem;
-  color: var(--gm-muted);
-  letter-spacing: 0.4px;
-}
-
-.clue-pill {
-  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   padding: 2px 9px;
-  border: 2px solid;
+  border: 2px solid #000;
   box-shadow: 2px 2px 0 #000;
+  letter-spacing: 0.5px;
 }
 
-.clue-pill.good {
-  background: #0e3625;
-  color: #6bf0b3;
-  border-color: var(--gm-green);
-}
-
-.clue-pill.sus {
-  background: #47101e;
-  color: #ff99a8;
-  border-color: var(--gm-red);
+.gm-top-hint {
+  font-family: var(--font-dlg);
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #d8c7f0;
 }
 
 .gm-dlg-tools {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
-.gm-btn-small {
+.gm-clock-pill {
   background: #281545;
   color: var(--gm-gold);
   border: 2px solid var(--gm-gold);
   box-shadow: 2px 2px 0 #000;
-  padding: 4px 10px;
-  font-family: var(--font-pixel);
+  padding: 3px 10px;
+  font-family: var(--font-mono);
   font-weight: 700;
-  font-size: 0.84rem;
-  cursor: pointer;
-}
-
-.gm-btn-small:hover,
-.gm-btn-small.open {
-  background: var(--gm-gold);
-  color: #140824;
+  font-size: 0.86rem;
 }
 
 .gm-btn-close {
@@ -306,45 +233,366 @@ body {
   color: #fff;
 }
 
-/* Collapsible Parchment Rules Note */
-.gm-rules-note {
-  position: absolute;
-  top: 50px;
-  right: 16px;
-  width: 340px;
-  background: #1e1033;
-  border: 3px solid var(--gm-gold);
-  outline: 3px solid #000;
-  box-shadow: 6px 6px 0 #000;
-  padding: 12px;
-  z-index: 40;
+/* 2-Column Split: Left = Chat & Questions (1.35fr) | Right = Manual Clipboard (1fr) */
+.gm-interrogate-split {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 14px;
+  align-items: stretch;
+  min-height: 440px;
 }
 
-.gm-note-title {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 0.92rem;
-  color: var(--gm-gold);
-  border-bottom: 2px solid #59368a;
-  padding-bottom: 5px;
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
-}
-
-.qm-rules-scroll {
-  font-family: var(--font-dlg);
-  font-size: 0.95rem;
-  line-height: 1.45;
+/* ============================================================================
+   LEFT COLUMN: Chat Actors, Scrollable Chat Feed & Question Options
+   ============================================================================ */
+.gm-chat-panel {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 220px;
+  min-width: 0;
+}
+
+.gm-chat-actors {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #10071f;
+  border: 2px solid #4d2c7a;
+  padding: 6px 10px;
+  gap: 8px;
+}
+
+.gm-actor-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 6px;
+  border: 2px solid transparent;
+}
+
+.gm-actor-chip.talking {
+  border-color: var(--gm-gold);
+  background: #22103d;
+}
+
+.gm-actor-chip.happy-hop {
+  animation: pixelHop 0.25s steps(3);
+}
+
+@keyframes pixelHop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+#qm-velvet-portrait,
+#qm-portrait {
+  display: block;
+  background: #140826;
+  border: 2px solid var(--gm-border-light);
+}
+
+.gm-guest-avatar-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.qm-scan-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: rgba(60, 214, 136, 0.55);
+  border-top: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  pointer-events: none;
+  animation: scanSweep 0.7s steps(8) infinite alternate;
+}
+
+@keyframes scanSweep {
+  0% { top: 2px; }
+  100% { top: 52px; }
+}
+
+.gm-actor-meta.right {
+  text-align: right;
+}
+
+.gm-actor-name {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--gm-gold);
+  text-shadow: 1px 1px 0 #000;
+}
+
+.gm-actor-role {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #dec9ff;
+}
+
+.gm-vs-divider {
+  font-family: var(--font-title);
+  font-size: 0.85rem;
+  color: var(--gm-orange);
+  padding: 0 4px;
+}
+
+/* Scrollable Conversation Chat Feed */
+.gm-chat-log {
+  flex: 1;
+  height: 215px;
+  max-height: 215px;
   overflow-y: auto;
+  background: #0a0414;
+  border: 3px solid var(--gm-border-light);
+  box-shadow: inset 0 0 0 2px #361d5c;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-msg {
+  max-width: 90%;
+  padding: 7px 11px;
+  border: 2px solid;
+  box-shadow: 3px 3px 0 #000;
+  font-family: var(--font-dlg);
+  font-size: 1.0rem;
+  line-height: 1.38;
+}
+
+.chat-msg.velvet-msg {
+  align-self: flex-start;
+  background: #23113f;
+  border-color: #9e63ff;
+  color: #f6edff;
+}
+
+.chat-msg.guest-msg {
+  align-self: flex-end;
+  background: #170d29;
+  border-color: var(--gm-gold);
+  color: #ffffff;
+}
+
+.chat-sender {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 0.78rem;
+  margin-bottom: 2px;
+  letter-spacing: 0.4px;
+}
+
+.velvet-msg .chat-sender {
+  color: var(--gm-orange);
+}
+
+.guest-msg .chat-sender {
+  color: var(--gm-gold);
+}
+
+/* Neutral Parchment Evidence Card inside Chat (No Green/Red Spoilers!) */
+.chat-evidence-card {
+  margin-top: 6px;
+  padding: 4px 9px;
+  background: #f4e4bc;
+  color: #160a28;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 #000;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.86rem;
+}
+
+/* Question Options to Ask */
+.gm-question-options {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: #110721;
+  border: 2px solid #4d2c7a;
+  padding: 8px 10px;
+}
+
+.gm-q-header {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--gm-orange);
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+.gm-q-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #201038;
+  color: #ffffff;
+  border: 2px solid #6b43a3;
+  box-shadow: 2px 2px 0 #000;
+  padding: 6px 10px;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-dlg);
+  font-weight: 600;
+  font-size: 0.94rem;
+}
+
+.gm-q-btn:hover {
+  background: #351a5c;
+  border-color: var(--gm-gold);
+  color: var(--gm-gold);
+}
+
+.gm-q-btn.asked {
+  background: #140a24;
+  border-color: #462a6e;
+  color: #b9a4d6;
+}
+
+.q-key {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.86rem;
+  color: var(--gm-gold);
+}
+
+.q-text {
+  flex: 1;
+}
+
+.q-tag {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 1px 6px;
+  background: #381d61;
+  color: var(--gm-cream);
+  border: 1px solid #7d4ec2;
+}
+
+.gm-q-btn.asked .q-tag {
+  background: #1c1030;
+  color: #9e88bd;
+  border-color: #462a6e;
+}
+
+/* ============================================================================
+   RIGHT COLUMN: Manual Detective Clipboard (You Check If They're Lying!)
+   ============================================================================ */
+.gm-clipboard-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.gm-clip-box {
+  background: #110721;
+  border: 2px solid var(--gm-gold);
+  box-shadow: 3px 3px 0 #000;
+  padding: 8px 10px;
+}
+
+.gm-clip-box.rules-ref-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.gm-clip-title {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: var(--gm-gold);
+  border-bottom: 2px solid #482973;
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+  letter-spacing: 0.4px;
+}
+
+.gm-claims-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.gm-claim-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: #1b0d30;
+  border: 1px solid #4d2c7a;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.gm-claim-row:hover {
+  border-color: var(--gm-cream);
+}
+
+.claim-label {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: var(--gm-orange);
+  min-width: 82px;
+}
+
+.claim-val {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.84rem;
+  color: #ffffff;
+}
+
+.claim-mark {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 1px 6px;
+  background: #2b164a;
+  color: #d8c7f0;
+  border: 1px solid #6b43a3;
+}
+
+.claim-mark.mark-ok {
+  background: #12422d;
+  color: #72f7bc;
+  border-color: var(--gm-green);
+}
+
+.claim-mark.mark-lie {
+  background: #541223;
+  color: #ff99a8;
+  border-color: var(--gm-red);
+}
+
+/* Official Rules & VIP Roster Scroll */
+.qm-rules-scroll {
+  font-family: var(--font-dlg);
+  font-size: 0.9rem;
+  line-height: 1.38;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 185px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .rule-item {
-  background: #120821;
-  padding: 7px 10px;
+  background: #190c2e;
+  padding: 5px 8px;
   border-left: 3px solid var(--gm-gold);
   color: #f7eed7;
 }
@@ -354,244 +602,41 @@ body {
   font-weight: 700;
 }
 
-/* Main RPG Stage: Left Portrait | Center Text | Right Portrait */
-.gm-dlg-main {
+/* Final Verdict Stamp Buttons */
+.gm-verdict-box {
   display: grid;
-  grid-template-columns: 122px 1fr 130px;
-  gap: 12px;
-  align-items: stretch;
-}
-
-.gm-portrait-box {
-  background: #1c0f30;
-  border: 3px solid #6b43a3;
-  box-shadow: 3px 3px 0 #000;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.gm-portrait-box.talking {
-  border-color: var(--gm-gold);
-}
-
-.gm-portrait-box.sus-shake {
-  animation: pixelShake 0.3s steps(3);
-  border-color: var(--gm-red);
-}
-
-.gm-portrait-box.happy-hop {
-  animation: pixelHop 0.25s steps(3);
-  border-color: var(--gm-green);
-}
-
-@keyframes pixelShake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  50% { transform: translateX(6px); }
-  75% { transform: translateX(-4px); }
-}
-
-@keyframes pixelHop {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-.gm-portrait-frame {
-  position: relative;
-  border: 2px solid var(--gm-border-light);
-  background: #10071f;
-  overflow: hidden;
-}
-
-#qm-velvet-portrait,
-#qm-portrait {
-  display: block;
-  background: #120824;
-}
-
-.qm-scan-beam {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 12px;
-  background: rgba(60, 214, 136, 0.55);
-  border-top: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  pointer-events: none;
-  animation: scanSweep 0.7s steps(8) infinite alternate;
-}
-
-@keyframes scanSweep {
-  0% { top: 4px; }
-  100% { top: 88px; }
-}
-
-.gm-nameplate {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 0.86rem;
-  color: var(--gm-gold);
-  margin-top: 6px;
-  text-align: center;
-  text-shadow: 1px 1px 0 #000;
-}
-
-.gm-moodplate {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  font-size: 0.76rem;
-  color: #dec9ff;
-  text-align: center;
-  margin-top: 2px;
-}
-
-/* Center Dialogue Column */
-.gm-textbox-col {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 7px;
-}
-
-.gm-velvet-line {
-  background: #251340;
-  border: 2px solid #8c52d6;
-  padding: 6px 12px;
-  font-size: 1.0rem;
-  font-weight: 600;
-  color: #f8f0ff;
-}
-
-.gm-speaker-tag {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 0.88rem;
-  color: var(--gm-orange);
-  margin-right: 6px;
-}
-
-/* Evidence Ticket / Stamp Slip */
-.gm-evidence-slip {
-  align-self: flex-start;
-  font-family: var(--font-mono);
-  font-size: 0.96rem;
-  letter-spacing: 0.4px;
-  padding: 5px 12px;
-  background: #f4e4bc;
-  color: #1a0d2e;
-  border: 2px solid #000;
-  box-shadow: 3px 3px 0 #000;
-  font-weight: 700;
-}
-
-.gm-evidence-slip.prop-ok {
-  background: #0f3826;
-  color: #72f7bc;
-  border-color: var(--gm-green);
-}
-
-.gm-evidence-slip.prop-sus {
-  background: #4a1020;
-  color: #ffa1b1;
-  border-color: var(--gm-red);
-}
-
-/* Main RPG Speech Box */
-.gm-speech-box {
-  flex: 1;
-  background: #0b0514;
-  border: 3px solid var(--gm-border-light);
-  box-shadow: inset 0 0 0 2px #361d5c;
-  padding: 10px 14px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.gm-speaker-header {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-  font-size: 0.88rem;
-  color: var(--gm-gold);
-  letter-spacing: 0.4px;
-  margin-bottom: 4px;
-}
-
-#qm-speech-text {
-  font-family: var(--font-dlg);
-  font-weight: 600;
-  font-size: 1.14rem;
-  line-height: 1.45;
-  color: #ffffff;
-  letter-spacing: 0.2px;
-  min-height: 2.6em;
-}
-
-.gm-blink-cursor {
-  position: absolute;
-  right: 10px;
-  bottom: 6px;
-  font-size: 0.8rem;
-  color: var(--gm-gold);
-  animation: blinkStep 0.8s steps(2) infinite;
-}
-
-@keyframes blinkStep {
-  0% { opacity: 1; }
-  50% { opacity: 0; }
-}
-
-/* Bottom Command Buttons */
-.gm-dlg-footer {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .gm-cmd-btn {
   font-family: var(--font-pixel);
   font-weight: 700;
-  font-size: 0.92rem;
-  padding: 10px 14px;
+  font-size: 0.94rem;
+  padding: 8px 10px;
   border: 3px solid var(--gm-border-light);
   box-shadow: 4px 4px 0 #000;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   text-shadow: 1px 1px 0 #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cmd-sub {
+  font-family: var(--font-dlg);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: none;
+  opacity: 0.92;
 }
 
 .gm-cmd-btn:active {
   transform: translate(3px, 3px);
   box-shadow: 1px 1px 0 #000;
-}
-
-.next-cmd {
-  background: #4a2282;
-  color: var(--gm-cream);
-}
-
-.next-cmd:hover {
-  background: #612da8;
-  border-color: var(--gm-gold);
-  color: var(--gm-gold);
-}
-
-.next-cmd.complete {
-  background: #1f1136;
-  color: var(--gm-muted);
-  border-color: #553485;
-}
-
-.gm-verdict-cmds {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
 }
 
 .admit-cmd {
