@@ -31,41 +31,72 @@ const ITEMS_CLEAN = [
   'Rose Bouquet'
 ];
 
+const LEVEL_META = [
+  {
+    id: 0,
+    shortName: 'LVL 1: GRAND BALLROOM',
+    title: 'STAGE 1 -- THE GRAND BALLROOM',
+    subtitle: 'Swinging Chandeliers & Bounce Ottomans',
+    password: 'BLOOD MOON',
+    desc: 'Classic 3-floor manor reception with bouncy chandeliers and balcony window sneaks.'
+  },
+  {
+    id: 1,
+    shortName: 'LVL 2: ALCHEMY WING',
+    title: 'STAGE 2 -- HAUNTED ALCHEMY CONSERVATORY',
+    subtitle: 'Moving Platforms, Warp Mirrors & Steam Vents',
+    password: 'WITCHING HOUR',
+    desc: 'Gothic greenhouse & lab featuring gliding platforms, teleportation mirrors, and cauldron vents!'
+  },
+  {
+    id: 2,
+    shortName: 'LVL 3: CLOCKWORK BELFRY',
+    title: 'STAGE 3 -- CLOCKWORK BELFRY ROOFTOPS',
+    subtitle: 'Updraft Wind Streams, Rotating Cogs & Twin Portals',
+    password: 'NIGHTSHADE',
+    desc: 'High-altitude clocktower featuring vertical wind updrafts, moving brass cogs, and rooftop crashers!'
+  }
+];
+
 const WRONG_PASSWORDS = [
   '"Uhh... Open Sesame?"',
   '"Full Moon Fever?"',
   '"Spooky Scary Skeletons?"',
   '"Trick or Treat... I think?"',
-  '"Red Sun? Purple Moon?"'
+  '"Hocus Pocus... maybe?"'
 ];
 
-const RIGHT_PASSWORDS = [
-  '"The secret password is BLOOD MOON, of course!"',
-  '"Whispering: BLOOD MOON! Happy Halloween, Velvet!"',
-  '"BLOOD MOON! Wouldn\'t miss your party for the world!"'
-];
+function getRightPasswords(pass) {
+  return [
+    `"The secret password is ${pass}, of course!"`,
+    `"Whispering: ${pass}! Happy Halloween, Velvet!"`,
+    `"${pass}! Wouldn't miss your party for the world!"`
+  ];
+}
 
-function getRulesForHour(hourIndex) {
-  // hourIndex: 0 = 9PM, 1 = 10PM, 2 = 11PM
+function getRulesForHour(hourIndex, levelIndex = 0) {
+  const lvl = LEVEL_META[levelIndex] || LEVEL_META[0];
+  const effectiveTier = Math.max(hourIndex, levelIndex);
+
   const rules = [
     {
       title: 'Rule #1: Secret Password',
-      desc: 'All guests must know tonight\'s password: "BLOOD MOON".'
+      desc: `All guests must know this stage's password: "${lvl.password}".`
     },
     {
       title: 'Rule #2: Footwear Check',
-      desc: 'NO Muddy Swamp Boots allowed on Velvet\'s rugs!'
+      desc: 'NO Muddy Swamp Boots allowed inside!'
     }
   ];
 
-  if (hourIndex >= 1) {
+  if (effectiveTier >= 1) {
     rules.push({
       title: 'Rule #3: Official Ticket Code',
       desc: 'Valid tickets start with "VV-" and end in an EVEN number (e.g., VV-204).'
     });
   }
 
-  if (hourIndex >= 2) {
+  if (effectiveTier >= 2) {
     rules.push({
       title: 'Rule #4: VIP Costume Match',
       desc: 'Impostors are stealing names! Guest\'s Costume must match the VIP Roster!'
@@ -75,8 +106,10 @@ function getRulesForHour(hourIndex) {
   return rules;
 }
 
-function generateDoorGuest(hourIndex) {
-  // Decide whether this guest is legitimately invited (45% invited, 55% uninvited crasher)
+function generateDoorGuest(hourIndex, levelIndex = 0) {
+  const lvl = LEVEL_META[levelIndex] || LEVEL_META[0];
+  const effectiveTier = Math.max(hourIndex, levelIndex);
+
   const isInvited = Math.random() < 0.46;
   const vip = VIP_ROSTER[Math.floor(Math.random() * VIP_ROSTER.length)];
 
@@ -86,28 +119,27 @@ function generateDoorGuest(hourIndex) {
   let shoes = 'Polished Dress Shoes';
   let hasMuddyBoots = false;
 
-  // Generate a valid ticket first: VV- + 2 digits + even digit
   const evenDigits = [0, 2, 4, 6, 8];
   const oddDigits = [1, 3, 5, 7, 9];
   const midDigits = Math.floor(10 + Math.random() * 89);
   let ticketCode = `VV-${midDigits}${evenDigits[Math.floor(Math.random() * evenDigits.length)]}`;
 
   let knowsPassword = true;
-  let passwordLine = RIGHT_PASSWORDS[Math.floor(Math.random() * RIGHT_PASSWORDS.length)];
+  const rightList = getRightPasswords(lvl.password);
+  let passwordLine = rightList[Math.floor(Math.random() * rightList.length)];
   let violationReason = null;
 
   if (!isInvited) {
-    // Pick a flaw appropriate for the current hour!
     const possibleFlaws = ['wrong_password', 'muddy_boots'];
-    if (hourIndex >= 1) possibleFlaws.push('fake_ticket', 'fake_ticket');
-    if (hourIndex >= 2) possibleFlaws.push('wrong_costume', 'wrong_costume');
+    if (effectiveTier >= 1) possibleFlaws.push('fake_ticket', 'fake_ticket');
+    if (effectiveTier >= 2) possibleFlaws.push('wrong_costume', 'wrong_costume');
 
     const flaw = possibleFlaws[Math.floor(Math.random() * possibleFlaws.length)];
 
     if (flaw === 'wrong_password') {
       knowsPassword = false;
       passwordLine = WRONG_PASSWORDS[Math.floor(Math.random() * WRONG_PASSWORDS.length)];
-      violationReason = 'Did not know the secret password ("BLOOD MOON")!';
+      violationReason = `Did not know the secret password ("${lvl.password}")!`;
     } else if (flaw === 'muddy_boots') {
       hasMuddyBoots = true;
       shoes = 'Muddy Swamp Boots (Dripping Bog Slime!)';
@@ -152,6 +184,7 @@ function generateDoorGuest(hourIndex) {
     hasMuddyBoots,
     ticketCode,
     knowsPassword,
+    expectedPassword: lvl.password,
     passwordLine,
     isInvited,
     violationReason,
@@ -619,6 +652,7 @@ function drawVelvetSprite(ctx, velvet, animTime) {
 window.GameData = {
   VIP_ROSTER,
   COSTUME_TYPES,
+  LEVEL_META,
   getRulesForHour,
   generateDoorGuest,
   drawGuestSprite,

@@ -93,6 +93,15 @@ class SoundEngine {
     this.playTone(base, 'square', 0.055, 0.06, base * 1.12);
   }
 
+  menuMove() {
+    this.playTone(440, 'square', 0.045, 0.07, 520);
+  }
+
+  menuSelect() {
+    this.playTone(587.33, 'triangle', 0.08, 0.12);
+    this.playTone(880, 'triangle', 0.14, 0.14, null, 0.06);
+  }
+
   admitSuccess() {
     const notes = [523.25, 659.25, 783.99, 1046.5];
     notes.forEach((n, i) => {

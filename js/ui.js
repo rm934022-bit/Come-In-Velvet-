@@ -220,14 +220,21 @@ class UIController {
       this.elName.textContent = g.name.toUpperCase();
       this.elSpeaker.textContent = `${g.name.toUpperCase()} (${g.costume.toUpperCase()}):`;
 
-      const validPrefix = g.ticketCode.startsWith('VV-');
-      const lastDigit = parseInt(g.ticketCode.slice(-1), 10);
-      const validEven = !isNaN(lastDigit) && lastDigit % 2 === 0;
-      const ticketOk = validPrefix && validEven;
+      const lvlIdx = this.game.currentLevelIndex || 0;
+      const numPart = parseInt(g.ticketCode.split('-')[1], 10);
+      let ticketOk = true;
+      if (lvlIdx === 0) {
+        ticketOk = g.ticketCode.startsWith('VV-') && !isNaN(numPart) && numPart % 2 === 0;
+      } else if (lvlIdx === 1) {
+        ticketOk = g.ticketCode.startsWith('AL-') && !isNaN(numPart) && numPart % 2 !== 0;
+      } else {
+        ticketOk = g.ticketCode.startsWith('CW-') && !isNaN(numPart) && numPart % 3 === 0;
+      }
 
       const vipMatch = window.GameData.VIP_ROSTER.find(v => v.name === g.name);
       const hourIdx = this.game.getHourIndex();
-      const costumeOk = hourIdx < 2 || (vipMatch && vipMatch.costume === g.costume);
+      const effectiveTier = Math.max(hourIdx, lvlIdx);
+      const costumeOk = effectiveTier < 2 || (vipMatch && vipMatch.costume === g.costume);
       const stepOk = ticketOk && costumeOk;
 
       g.step1Ok = stepOk;
@@ -264,18 +271,19 @@ class UIController {
       this.elSpeaker.textContent = `${(g.askedId ? g.name : g.costume).toUpperCase()} WHISPERS:`;
 
       const stepOk = g.knowsPassword;
+      const passStr = g.expectedPassword || 'BLOOD MOON';
       g.step2Ok = stepOk;
       this.guestReaction = stepOk ? 'good' : 'sus';
       this.elVelvetMood.textContent = stepOk ? 'PASS MATCHED' : 'WRONG PASS!';
 
       this.elEvidenceProp.classList.add(stepOk ? 'prop-ok' : 'prop-sus');
       this.elEvidenceProp.textContent = stepOk
-        ? '[PASSWORD: "BLOOD MOON"] -- VERIFIED'
+        ? `[PASSWORD: "${passStr}"] -- VERIFIED`
         : '[PASSWORD FAILED] -- DOES NOT KNOW CODE!';
 
       this.addClue(
         'pass',
-        stepOk ? 'PASS: BLOOD MOON' : 'WRONG PASSWORD!',
+        stepOk ? `PASS: ${passStr}` : 'WRONG PASSWORD!',
         stepOk
       );
 
@@ -379,17 +387,18 @@ class UIController {
   }
 
   renderMiniRules(hourIndex) {
-    const rules = window.GameData.getRulesForHour(hourIndex);
+    const lvlIdx = this.game.currentLevelIndex || 0;
+    const rules = window.GameData.getRulesForHour(hourIndex, lvlIdx);
     let html = '';
     for (const r of rules) {
       html += `<div class="rule-item"><strong>${r.title}</strong><br/>${r.desc}</div>`;
     }
 
-    if (hourIndex >= 2) {
+    if (Math.max(hourIndex, lvlIdx) >= 2) {
       html += `<div class="rule-item"><strong>VIP ROSTER COSTUMES:</strong><br/>`;
       html += window.GameData.VIP_ROSTER.map(
-        v => `* <b>${v.name}</b> = ${v.costume}`
-      ).join('<br/>');
+        v => `<div class="gb-guest-row"><span class="gb-guest-name">${v.name}</span><span class="gb-guest-costume">${v.costume}</span></div>`
+      ).join('');
       html += `</div>`;
     }
     this.elRulesContent.innerHTML = html;
@@ -401,23 +410,24 @@ class UIController {
   }
 
   updateGuestbookContent(hourIndex) {
-    const rules = window.GameData.getRulesForHour(hourIndex);
+    const lvlIdx = this.game.currentLevelIndex || 0;
+    const rules = window.GameData.getRulesForHour(hourIndex, lvlIdx);
     let html = `<div class="gb-section"><h4>ACTIVE SECURITY ORDERS</h4>`;
     for (const r of rules) {
-      html += `<p style="margin-bottom:6px;">* <strong>${r.title}:</strong> ${r.desc}</p>`;
+      html += `<div class="gb-rule-row"><strong>${r.title}:</strong><br/>${r.desc}</div>`;
     }
     html += `</div>`;
 
-    html += `<div class="gb-section"><h4>VIP GUEST ROSTER</h4>`;
+    html += `<div class="gb-section"><h4>VIP GUEST ROSTER (NAME = COSTUME)</h4>`;
     for (const vip of window.GameData.VIP_ROSTER) {
-      html += `<div class="gb-guest-row"><span>${vip.name}</span><strong style="color:#ffcb47">${vip.costume}</strong></div>`;
+      html += `<div class="gb-guest-row"><span class="gb-guest-name">${vip.name}</span><span class="gb-guest-costume">${vip.costume}</span></div>`;
     }
     html += `</div>`;
 
     html += `<div class="gb-section"><h4>CONTROLS MANUAL</h4>
-      <p>* <kbd>E</kbd> Interrogate guest at Front Door</p>
-      <p>* <kbd>SPACE</kbd> Ask next question in dialogue</p>
-      <p>* <kbd>SHIFT</kbd> Morph into Vampire Bat</p>
+      <p style="margin-bottom:4px;">* <kbd>E</kbd> Interrogate guest at Front Door</p>
+      <p style="margin-bottom:4px;">* <kbd>SPACE</kbd> Ask next question in dialogue</p>
+      <p style="margin-bottom:4px;">* <kbd>SHIFT</kbd> Morph into Vampire Bat</p>
       <p>* <kbd>J</kbd> / <kbd>CLICK</kbd> Sonic Swoop &amp; Catch Crasher</p>
     </div>`;
 

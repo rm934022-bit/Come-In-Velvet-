@@ -22,6 +22,7 @@ class VelvetPlayer {
     this.maxBatEnergy = 100;
     this.swoopTimer = 0;
     this.swoopCooldown = 0;
+    this.teleportCooldown = 0;
   }
 
   toggleBatForm(particles) {
@@ -196,8 +197,9 @@ class VelvetPlayer {
 
       if (p.oneWay && this.dropThroughTimer > 0) continue;
 
-      if (this.vy >= 0 && prevBottom <= p.y + 14 && newBottom >= p.y) {
+      if (this.vy >= 0 && prevBottom <= p.y + 16 + Math.max(0, p.dy || 0) && newBottom >= p.y) {
         this.y = p.y - 22;
+        if (p.dx) this.x += p.dx;
         if (p.bouncy && this.vy > 220) {
           this.vy = -510;
           this.jumpsLeft = 2;
@@ -209,6 +211,65 @@ class VelvetPlayer {
           this.jumpsLeft = 2;
         }
         break;
+      }
+    }
+
+    // Updraft Wind Zones (Level 3)
+    if (level.windZones) {
+      for (const wz of level.windZones) {
+        if (this.x >= wz.x && this.x <= wz.x + wz.w && this.y >= wz.y && this.y <= wz.y + wz.h) {
+          this.vy -= 2100 * dt;
+          if (this.vy < -375) this.vy = -375;
+          this.onGround = false;
+          this.jumpsLeft = 2;
+          if (Math.random() < 0.3) {
+            particles.push({
+              x: this.x + (Math.random() - 0.5) * 20,
+              y: this.y + 15,
+              vx: 0,
+              vy: -140,
+              r: 3,
+              color: '#5ce1ff',
+              life: 0.25,
+              maxLife: 0.25
+            });
+          }
+        }
+      }
+    }
+
+    // Haunted Warp Mirrors (Levels 2 & 3)
+    if (this.teleportCooldown > 0) {
+      this.teleportCooldown -= dt;
+    } else if (level.teleporters) {
+      for (const pair of level.teleporters) {
+        const distA = Math.hypot(this.x - pair.a.x, this.y - pair.a.y);
+        const distB = Math.hypot(this.x - pair.b.x, this.y - pair.b.y);
+        let dest = null;
+        if (distA < 30) dest = pair.b;
+        else if (distB < 30) dest = pair.a;
+
+        if (dest) {
+          this.x = dest.x;
+          this.y = dest.y;
+          this.vy = -120;
+          this.teleportCooldown = 1.15;
+          window.SFX.batTransform(true);
+          for (let i = 0; i < 14; i++) {
+            const ang = (Math.PI * 2 * i) / 14;
+            particles.push({
+              x: this.x,
+              y: this.y,
+              vx: Math.cos(ang) * 110,
+              vy: Math.sin(ang) * 110,
+              r: 4,
+              color: dest.color || '#3cd688',
+              life: 0.35,
+              maxLife: 0.35
+            });
+          }
+          break;
+        }
       }
     }
 

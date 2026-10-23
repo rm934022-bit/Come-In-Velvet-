@@ -10,10 +10,11 @@
   --gm-green: #3cd688;
   --gm-red: #e83b55;
   --gm-cream: #f7eed7;
-  --gm-muted: #b09bc9;
-  --font-pixel: 'Silkscreen', monospace;
-  --font-dlg: 'Pixelify Sans', monospace;
-  --font-mono: 'VT323', monospace;
+  --gm-muted: #c4b0de;
+  --font-title: 'Silkscreen', monospace;
+  --font-pixel: 'Chakra Petch', monospace;
+  --font-dlg: 'Chakra Petch', sans-serif;
+  --font-mono: 'Space Mono', monospace;
 }
 
 * {
@@ -22,6 +23,7 @@
   padding: 0;
   user-select: none;
   image-rendering: pixelated;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
@@ -76,24 +78,27 @@ body {
   justify-content: space-between;
   background: #0e061a;
   border-bottom: 3px solid #3c2261;
-  padding: 4px 10px;
+  padding: 5px 12px;
   font-family: var(--font-pixel);
 }
 
 .gm-bezel-title {
-  font-size: 0.78rem;
+  font-family: var(--font-title);
+  font-size: 0.82rem;
   color: var(--gm-gold);
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+  text-shadow: 2px 2px 0 #000;
 }
 
 .gm-ver {
+  font-family: var(--font-mono);
   color: var(--gm-muted);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
 }
 
 .gm-bezel-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .gm-btn-tiny {
@@ -101,9 +106,12 @@ body {
   color: var(--gm-cream);
   border: 2px solid #6b43a3;
   box-shadow: 2px 2px 0 #000;
-  padding: 2px 8px;
+  padding: 3px 10px;
   font-family: var(--font-pixel);
-  font-size: 0.65rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.4px;
+  text-shadow: 1px 1px 0 #000;
   cursor: pointer;
 }
 
@@ -132,21 +140,21 @@ body {
 }
 
 /* ============================================================================
-   GameMaker Classic 9-Slice RPG Dialogue Box
+   GameMaker Classic 9-Slice RPG Dialogue Box (Crisp & Easy to Study)
    ============================================================================ */
 .gm-dialogue-box {
   position: absolute;
   bottom: 14px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(860px, 95%);
+  width: min(900px, 96%);
   background: var(--gm-box-bg);
   border: 4px solid var(--gm-border-light);
   outline: 4px solid var(--gm-border-dark);
   box-shadow:
     inset 0 0 0 3px #4b2b78,
     8px 8px 0px #05020a;
-  padding: 12px 14px;
+  padding: 12px 16px;
   z-index: 25;
 }
 
@@ -155,7 +163,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding-bottom: 8px;
   margin-bottom: 10px;
   border-bottom: 2px solid #452870;
@@ -164,30 +172,34 @@ body {
 .gm-step-tabs {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .gm-label {
   font-family: var(--font-pixel);
-  font-size: 0.68rem;
+  font-weight: 700;
+  font-size: 0.85rem;
   color: var(--gm-gold);
   margin-right: 2px;
+  text-shadow: 1px 1px 0 #000;
 }
 
 .step-dot {
   background: #1f1136;
-  color: var(--gm-muted);
-  border: 2px solid #553485;
+  color: #d7c6f0;
+  border: 2px solid #5e3b91;
   box-shadow: 2px 2px 0 #000;
-  padding: 3px 8px;
+  padding: 4px 10px;
   font-family: var(--font-pixel);
-  font-size: 0.65rem;
+  font-weight: 700;
+  font-size: 0.84rem;
+  letter-spacing: 0.3px;
   cursor: pointer;
 }
 
 .step-dot:hover {
   border-color: var(--gm-cream);
-  color: var(--gm-cream);
+  color: #fff;
 }
 
 .step-dot.active {
@@ -199,13 +211,13 @@ body {
 
 .step-dot.done-ok {
   background: #123828;
-  color: var(--gm-green);
+  color: #6bf0b3;
   border-color: var(--gm-green);
 }
 
 .step-dot.done-sus {
-  background: #421220;
-  color: #ff7a8e;
+  background: #471220;
+  color: #ff99a8;
   border-color: var(--gm-red);
 }
 
@@ -216,36 +228,39 @@ body {
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   background: #0c0617;
   border: 2px solid #351d57;
-  padding: 4px 8px;
-  min-height: 28px;
+  padding: 5px 10px;
+  min-height: 32px;
 }
 
 .clue-placeholder {
   font-family: var(--font-pixel);
-  font-size: 0.64rem;
+  font-weight: 600;
+  font-size: 0.84rem;
   color: var(--gm-muted);
+  letter-spacing: 0.4px;
 }
 
 .clue-pill {
-  font-family: var(--font-pixel);
-  font-size: 0.64rem;
-  padding: 2px 7px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 2px 9px;
   border: 2px solid;
   box-shadow: 2px 2px 0 #000;
 }
 
 .clue-pill.good {
-  background: #103324;
-  color: var(--gm-green);
+  background: #0e3625;
+  color: #6bf0b3;
   border-color: var(--gm-green);
 }
 
 .clue-pill.sus {
-  background: #3d101c;
-  color: #ff8597;
+  background: #47101e;
+  color: #ff99a8;
   border-color: var(--gm-red);
 }
 
@@ -260,9 +275,10 @@ body {
   color: var(--gm-gold);
   border: 2px solid var(--gm-gold);
   box-shadow: 2px 2px 0 #000;
-  padding: 3px 8px;
+  padding: 4px 10px;
   font-family: var(--font-pixel);
-  font-size: 0.65rem;
+  font-weight: 700;
+  font-size: 0.84rem;
   cursor: pointer;
 }
 
@@ -277,10 +293,11 @@ body {
   color: var(--gm-cream);
   border: 2px solid var(--gm-red);
   box-shadow: 2px 2px 0 #000;
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   font-family: var(--font-pixel);
-  font-size: 0.7rem;
+  font-weight: 700;
+  font-size: 0.88rem;
   cursor: pointer;
 }
 
@@ -292,46 +309,55 @@ body {
 /* Collapsible Parchment Rules Note */
 .gm-rules-note {
   position: absolute;
-  top: 46px;
-  right: 14px;
-  width: 290px;
-  background: #24143b;
+  top: 50px;
+  right: 16px;
+  width: 340px;
+  background: #1e1033;
   border: 3px solid var(--gm-gold);
   outline: 3px solid #000;
   box-shadow: 6px 6px 0 #000;
-  padding: 10px;
+  padding: 12px;
   z-index: 40;
 }
 
 .gm-note-title {
   font-family: var(--font-pixel);
-  font-size: 0.72rem;
+  font-weight: 700;
+  font-size: 0.92rem;
   color: var(--gm-gold);
   border-bottom: 2px solid #59368a;
-  padding-bottom: 4px;
-  margin-bottom: 6px;
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
 }
 
 .qm-rules-scroll {
-  font-size: 0.84rem;
-  line-height: 1.35;
+  font-family: var(--font-dlg);
+  font-size: 0.95rem;
+  line-height: 1.45;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 180px;
+  gap: 8px;
+  max-height: 220px;
   overflow-y: auto;
 }
 
 .rule-item {
-  background: #160b26;
-  padding: 5px 7px;
+  background: #120821;
+  padding: 7px 10px;
   border-left: 3px solid var(--gm-gold);
+  color: #f7eed7;
+}
+
+.rule-item strong {
+  color: var(--gm-gold);
+  font-weight: 700;
 }
 
 /* Main RPG Stage: Left Portrait | Center Text | Right Portrait */
 .gm-dlg-main {
   display: grid;
-  grid-template-columns: 118px 1fr 126px;
+  grid-template-columns: 122px 1fr 130px;
   gap: 12px;
   align-items: stretch;
 }
@@ -405,17 +431,21 @@ body {
 
 .gm-nameplate {
   font-family: var(--font-pixel);
-  font-size: 0.68rem;
+  font-weight: 700;
+  font-size: 0.86rem;
   color: var(--gm-gold);
-  margin-top: 5px;
+  margin-top: 6px;
   text-align: center;
+  text-shadow: 1px 1px 0 #000;
 }
 
 .gm-moodplate {
   font-family: var(--font-mono);
-  font-size: 0.9rem;
-  color: var(--gm-muted);
+  font-weight: 700;
+  font-size: 0.76rem;
+  color: #dec9ff;
   text-align: center;
+  margin-top: 2px;
 }
 
 /* Center Dialogue Column */
@@ -423,20 +453,22 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 6px;
+  gap: 7px;
 }
 
 .gm-velvet-line {
   background: #251340;
   border: 2px solid #8c52d6;
-  padding: 5px 10px;
-  font-size: 0.92rem;
-  color: #f3e6ff;
+  padding: 6px 12px;
+  font-size: 1.0rem;
+  font-weight: 600;
+  color: #f8f0ff;
 }
 
 .gm-speaker-tag {
   font-family: var(--font-pixel);
-  font-size: 0.66rem;
+  font-weight: 700;
+  font-size: 0.88rem;
   color: var(--gm-orange);
   margin-right: 6px;
 }
@@ -445,9 +477,9 @@ body {
 .gm-evidence-slip {
   align-self: flex-start;
   font-family: var(--font-mono);
-  font-size: 1.1rem;
-  letter-spacing: 0.5px;
-  padding: 4px 12px;
+  font-size: 0.96rem;
+  letter-spacing: 0.4px;
+  padding: 5px 12px;
   background: #f4e4bc;
   color: #1a0d2e;
   border: 2px solid #000;
@@ -456,21 +488,21 @@ body {
 }
 
 .gm-evidence-slip.prop-ok {
-  background: #133b2a;
-  color: var(--gm-green);
+  background: #0f3826;
+  color: #72f7bc;
   border-color: var(--gm-green);
 }
 
 .gm-evidence-slip.prop-sus {
-  background: #471220;
-  color: #ff8c9e;
+  background: #4a1020;
+  color: #ffa1b1;
   border-color: var(--gm-red);
 }
 
 /* Main RPG Speech Box */
 .gm-speech-box {
   flex: 1;
-  background: #0d0618;
+  background: #0b0514;
   border: 3px solid var(--gm-border-light);
   box-shadow: inset 0 0 0 2px #361d5c;
   padding: 10px 14px;
@@ -482,24 +514,28 @@ body {
 
 .gm-speaker-header {
   font-family: var(--font-pixel);
-  font-size: 0.68rem;
+  font-weight: 700;
+  font-size: 0.88rem;
   color: var(--gm-gold);
+  letter-spacing: 0.4px;
   margin-bottom: 4px;
 }
 
 #qm-speech-text {
   font-family: var(--font-dlg);
-  font-size: 1.08rem;
-  line-height: 1.35;
+  font-weight: 600;
+  font-size: 1.14rem;
+  line-height: 1.45;
   color: #ffffff;
-  min-height: 2.5em;
+  letter-spacing: 0.2px;
+  min-height: 2.6em;
 }
 
 .gm-blink-cursor {
   position: absolute;
   right: 10px;
   bottom: 6px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: var(--gm-gold);
   animation: blinkStep 0.8s steps(2) infinite;
 }
@@ -519,13 +555,15 @@ body {
 
 .gm-cmd-btn {
   font-family: var(--font-pixel);
-  font-size: 0.72rem;
-  padding: 10px 12px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 10px 14px;
   border: 3px solid var(--gm-border-light);
   box-shadow: 4px 4px 0 #000;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  text-shadow: 1px 1px 0 #000;
 }
 
 .gm-cmd-btn:active {
@@ -577,19 +615,19 @@ body {
 }
 
 /* ============================================================================
-   Parchment Guestbook Ledger Drawer
+   Parchment Guestbook Ledger Drawer (Easy-to-Study Reference Sheet)
    ============================================================================ */
 .gm-ledger-drawer {
   position: absolute;
   top: 42px;
   right: 14px;
-  width: 330px;
-  max-height: calc(100% - 60px);
-  background: #180c2b;
+  width: 375px;
+  max-height: calc(100% - 58px);
+  background: #160a28;
   border: 4px solid var(--gm-gold);
   outline: 4px solid #000;
   box-shadow: 8px 8px 0 #000;
-  padding: 12px;
+  padding: 14px;
   z-index: 30;
   overflow-y: auto;
 }
@@ -604,43 +642,75 @@ body {
 }
 
 .gm-ledger-header h3 {
-  font-family: var(--font-pixel);
+  font-family: var(--font-title);
   color: var(--gm-gold);
-  font-size: 0.85rem;
+  font-size: 0.96rem;
+  text-shadow: 2px 2px 0 #000;
 }
 
 .gb-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 0.9rem;
+  gap: 12px;
+  font-family: var(--font-dlg);
+  font-size: 0.98rem;
+  line-height: 1.45;
 }
 
 .gb-section {
-  background: #10071f;
-  border: 2px solid #482973;
-  padding: 8px 10px;
+  background: #0e051c;
+  border: 2px solid #543285;
+  padding: 10px 12px;
 }
 
 .gb-section h4 {
   font-family: var(--font-pixel);
+  font-weight: 700;
   color: var(--gm-orange);
-  margin-bottom: 6px;
-  font-size: 0.72rem;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #381e5e;
+  padding-bottom: 4px;
+}
+
+.gb-rule-row {
+  margin-bottom: 8px;
+  padding: 5px 8px;
+  background: #170b2c;
+  border-left: 3px solid var(--gm-gold);
 }
 
 .gb-guest-row {
   display: flex;
   justify-content: space-between;
-  padding: 3px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+  align-items: center;
+  padding: 5px 4px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.16);
+  font-size: 0.96rem;
+}
+
+.gb-guest-name {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.gb-guest-costume {
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--gm-gold);
+  background: #241240;
+  padding: 1px 7px;
+  border: 1px solid #6b43a3;
 }
 
 kbd {
   background: #090412;
   color: var(--gm-gold);
-  border: 1px solid #6b43a3;
-  padding: 1px 4px;
-  font-family: var(--font-pixel);
-  font-size: 0.62rem;
+  border: 1px solid #8a5cd1;
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.82rem;
 }

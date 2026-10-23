@@ -1,5 +1,5 @@
 // ============================================================================
-// Come In, Velvet! — Main Game Engine, Loop & GameMaker-Style Pixel HUD
+// Come In, Velvet! — Main Game Engine, GameMaker Title Menu, Codex & HUD
 // ============================================================================
 
 class ComeInVelvetGame {
@@ -11,14 +11,31 @@ class ComeInVelvetGame {
     this.velvet = new window.Entities.VelvetPlayer(360, 618);
     this.ui = new window.UIController(this);
 
-    this.state = 'title'; // 'title' | 'playing' | 'victory' | 'gameover'
+    // States: 'title' | 'playing' | 'paused' | 'victory' | 'gameover'
+    this.state = 'title';
+    // Subscreens when in title/paused: 'main' | 'howto' | 'codex'
+    this.menuSubscreen = 'main';
+    this.menuIndex = 0;
+    this.pauseIndex = 0;
+
+    // Stage selection: 0 = Grand Ballroom, 1 = Alchemy Conservatory, 2 = Clockwork Belfry
+    this.currentLevelIndex = 0;
+
+    // Difficulty settings: 0 = RELAXED, 1 = STANDARD, 2 = NIGHTMARE
+    this.difficultyIndex = 1;
+    this.difficulties = [
+      { name: 'RELAXED', duration: 150, drainMult: 0.7, spawnMult: 1.25, desc: 'Slower clock & gentler party control drain.' },
+      { name: 'STANDARD', duration: 165, drainMult: 1.0, spawnMult: 1.0, desc: 'The classic 9:00 PM to 12:00 AM gatekeeper shift.' },
+      { name: 'NIGHTMARE', duration: 180, drainMult: 1.4, spawnMult: 0.78, desc: 'Fast gatecrashers, strict patience & chaotic rush!' }
+    ];
+
     this.animTime = 0;
     this.lastTimestamp = performance.now();
 
-    // Night clock & progression (9:00 PM -> 12:00 AM = 165 seconds)
+    // Night clock & progression
     this.nightDuration = 165;
     this.nightElapsed = 0;
-    this.currentHourIndex = 0; // 0 = 9PM, 1 = 10PM, 2 = 11PM
+    this.currentHourIndex = 0;
 
     // Gameplay metrics
     this.partyControl = 100;
@@ -37,6 +54,14 @@ class ComeInVelvetGame {
     this.candies = [];
     this.particles = [];
     this.floatingTexts = [];
+
+    // Decorative title screen bats & embers
+    this.menuBats = Array.from({ length: 6 }, (_, i) => ({
+      x: Math.random() * 1280,
+      y: 70 + Math.random() * 240,
+      vx: 35 + Math.random() * 45,
+      phase: i * 1.3
+    }));
 
     // Timers
     this.doorSpawnTimer = 2.0;
@@ -62,19 +87,36 @@ class ComeInVelvetGame {
   }
 
   seedTitleDemo() {
+    this.level.loadLevel(this.currentLevelIndex);
     this.guests = [];
-    for (let i = 0; i < 4; i++) {
-      const profile = window.GameData.generateDoorGuest(0);
-      const g = new window.Entities.GuestEntity(profile, 420 + i * 165, 618, 'party');
+    for (let i = 0; i < 5; i++) {
+      const profile = window.GameData.generateDoorGuest(0, this.currentLevelIndex);
+      profile.costume = window.GameData.COSTUME_TYPES[i % window.GameData.COSTUME_TYPES.length];
+      const g = new window.Entities.GuestEntity(profile, 380 + i * 165, 618, 'party');
       this.guests.push(g);
     }
   }
 
+  getDifficulty() {
+    return this.difficulties[this.difficultyIndex];
+  }
+
+  getLevelMeta() {
+    return window.GameData.LEVEL_META[this.currentLevelIndex] || window.GameData.LEVEL_META[0];
+  }
+
   startNewNight() {
     window.SFX.init();
+    window.SFX.menuSelect();
     window.SFX.startMusic();
 
+    const diff = this.getDifficulty();
+    const lvlMeta = this.getLevelMeta();
+    this.nightDuration = diff.duration;
+    this.level.loadLevel(this.currentLevelIndex);
+
     this.state = 'playing';
+    this.menuSubscreen = 'main';
     this.velvet = new window.Entities.VelvetPlayer(330, 618);
     this.nightElapsed = 0;
     this.currentHourIndex = 0;
@@ -96,15 +138,43 @@ class ComeInVelvetGame {
     this.floatingTexts = [];
 
     this.doorSpawnTimer = 1.5;
-    this.sneakSpawnTimer = 20.0;
+    this.sneakSpawnTimer = 20.0 * diff.spawnMult;
     this.windowAlertTimer = 0;
     this.atticAlertTimer = 0;
 
     this.ui.closeQuestionModal();
+    this.ui.drawer.classList.add('hidden');
     this.ui.updateGuestbookContent(0);
-    this.showBanner('9:00 PM -- SHIFT START!', 'PASSWORD: "BLOOD MOON"  |  NO MUDDY BOOTS!', 4.2);
+    this.showBanner(
+      lvlMeta.title,
+      `PASSWORD: "${lvlMeta.password}"  |  ${lvlMeta.subtitle.toUpperCase()}`,
+      4.5
+    );
 
     this.spawnDoorGuest();
+  }
+
+  togglePause() {
+    if (this.state === 'playing') {
+      this.state = 'paused';
+      this.menuSubscreen = 'main';
+      this.pauseIndex = 0;
+      window.SFX.menuMove();
+    } else if (this.state === 'paused') {
+      this.state = 'playing';
+      this.menuSubscreen = 'main';
+      window.SFX.menuSelect();
+    }
+  }
+
+  returnToTitleMenu() {
+    this.ui.closeQuestionModal();
+    this.ui.drawer.classList.add('hidden');
+    this.state = 'title';
+    this.menuSubscreen = 'main';
+    this.menuIndex = 0;
+    this.seedTitleDemo();
+    window.SFX.menuSelect();
   }
 
   showBanner(title, subtitle, duration = 3.5) {
@@ -127,9 +197,9 @@ class ComeInVelvetGame {
 
   getHourIndex() {
     const progress = this.nightElapsed / this.nightDuration;
-    if (progress < 0.333) return 0; // 9 PM
-    if (progress < 0.666) return 1; // 10 PM
-    return 2; // 11 PM
+    if (progress < 0.333) return 0;
+    if (progress < 0.666) return 1;
+    return 2;
   }
 
   getTimeString() {
@@ -154,7 +224,7 @@ class ComeInVelvetGame {
     const queue = this.getQueueGuests();
     if (queue.length >= 3) return;
 
-    const profile = window.GameData.generateDoorGuest(this.getHourIndex());
+    const profile = window.GameData.generateDoorGuest(this.getHourIndex(), this.currentLevelIndex);
     const spawnX = 24 - queue.length * 46;
     const guest = new window.Entities.GuestEntity(profile, spawnX, 618, 'queue');
     this.guests.push(guest);
@@ -166,10 +236,10 @@ class ComeInVelvetGame {
     if (activeCrashers.length >= 3) return;
 
     const hourIdx = this.getHourIndex();
-    const profile = window.GameData.generateDoorGuest(hourIdx);
+    const profile = window.GameData.generateDoorGuest(hourIdx, this.currentLevelIndex);
     profile.isInvited = false;
 
-    const fromAttic = hourIdx >= 2 && Math.random() < 0.45;
+    const fromAttic = Math.max(hourIdx, this.currentLevelIndex) >= 2 && Math.random() < 0.45;
     const spawnX = fromAttic ? this.level.atticPortal.x : this.level.windowEntry.x;
     const spawnY = fromAttic ? this.level.atticPortal.y : this.level.windowEntry.y;
 
@@ -339,28 +409,210 @@ class ComeInVelvetGame {
     this.addFloatingText('! CRASHER ESCAPED (-14% CONTROL) !', crasher.x, crasher.y - 20, '#e83b55');
   }
 
+  // ==========================================================================
+  // MENU ACTIONS (Title Menu & Pause Menu)
+  // ==========================================================================
+  getTitleMenuItems() {
+    const lvl = this.getLevelMeta();
+    const diff = this.getDifficulty();
+    const soundState = window.SFX.muted ? 'OFF' : 'ON';
+    return [
+      { label: 'START NIGHT SHIFT', desc: `Enter ${lvl.name} and guard the party until 12:00 AM!` },
+      { label: `STAGE: < ${lvl.shortName} >`, desc: `${lvl.subtitle} — ${lvl.gimmickDesc}` },
+      { label: `DIFFICULTY: < ${diff.name} >`, desc: diff.desc },
+      { label: 'HOW TO PLAY', desc: 'Read the Gatekeeper Field Manual & Platforming Controls.' },
+      { label: 'VIP GUEST CODEX', desc: 'Inspect the 8 invited VIP guests & their registered costumes.' },
+      { label: `SOUND & MUSIC: < ${soundState} >`, desc: 'Toggle procedural chiptune music and sound effects.' }
+    ];
+  }
+
+  getPauseMenuItems() {
+    return [
+      { label: 'RESUME SHIFT', desc: 'Return to guarding the mansion.' },
+      { label: 'NEXT / CHANGE STAGE', desc: 'Cycle to the next Manor Stage and start a fresh shift.' },
+      { label: 'GUEST LEDGER & RULES', desc: 'Open Velvet\'s VIP Roster and active security rules.' },
+      { label: 'HOW TO PLAY', desc: 'Review controls and gatekeeper mechanics.' },
+      { label: 'RESTART SHIFT', desc: 'Start a fresh night back at 9:00 PM.' },
+      { label: 'QUIT TO TITLE MENU', desc: 'Leave current shift and return to the Main Menu.' }
+    ];
+  }
+
+  cycleStage(dir = 1) {
+    const count = window.GameData.LEVEL_META.length;
+    this.currentLevelIndex = (this.currentLevelIndex + dir + count) % count;
+    this.seedTitleDemo();
+    window.SFX.menuMove();
+  }
+
+  triggerTitleMenuAction(index) {
+    if (index === 0) {
+      this.startNewNight();
+    } else if (index === 1) {
+      this.cycleStage(1);
+    } else if (index === 2) {
+      this.difficultyIndex = (this.difficultyIndex + 1) % this.difficulties.length;
+      window.SFX.menuMove();
+    } else if (index === 3) {
+      this.menuSubscreen = 'howto';
+      window.SFX.menuSelect();
+    } else if (index === 4) {
+      this.menuSubscreen = 'codex';
+      window.SFX.menuSelect();
+    } else if (index === 5) {
+      this.ui.btnMute.click();
+      window.SFX.menuMove();
+    }
+  }
+
+  triggerPauseMenuAction(index) {
+    if (index === 0) {
+      this.togglePause();
+    } else if (index === 1) {
+      const count = window.GameData.LEVEL_META.length;
+      this.currentLevelIndex = (this.currentLevelIndex + 1) % count;
+      this.startNewNight();
+    } else if (index === 2) {
+      this.state = 'playing';
+      this.ui.toggleGuestbook();
+      window.SFX.menuSelect();
+    } else if (index === 3) {
+      this.menuSubscreen = 'howto';
+      window.SFX.menuSelect();
+    } else if (index === 4) {
+      this.startNewNight();
+    } else if (index === 5) {
+      this.returnToTitleMenu();
+    }
+  }
+
   setupInputs() {
+    const btnPause = document.getElementById('btn-pause');
+    if (btnPause) {
+      btnPause.addEventListener('click', () => {
+        if (this.state === 'playing' || this.state === 'paused') {
+          this.togglePause();
+        } else if (this.state === 'title' && this.menuSubscreen !== 'main') {
+          this.menuSubscreen = 'main';
+          window.SFX.menuMove();
+        }
+      });
+    }
+
     window.addEventListener('keydown', e => {
       const code = e.code;
 
-      if (this.state === 'title') {
-        if (code === 'Space' || code === 'Enter') {
-          e.preventDefault();
-          this.startNewNight();
-        }
-        return;
-      }
-
-      if (this.state === 'victory' || this.state === 'gameover') {
-        if (code === 'Space' || code === 'Enter' || code === 'KeyR') {
-          e.preventDefault();
-          this.startNewNight();
-        }
-        return;
-      }
-
+      // Global Mute
       if (code === 'KeyM') {
         this.ui.btnMute.click();
+        return;
+      }
+
+      // 1. TITLE SCREEN NAVIGATION
+      if (this.state === 'title') {
+        if (this.menuSubscreen !== 'main') {
+          if (code === 'Escape' || code === 'Space' || code === 'Enter' || code === 'Backspace') {
+            e.preventDefault();
+            this.menuSubscreen = 'main';
+            window.SFX.menuMove();
+          }
+          return;
+        }
+
+        const items = this.getTitleMenuItems();
+        if (code === 'KeyW' || code === 'ArrowUp') {
+          e.preventDefault();
+          this.menuIndex = (this.menuIndex - 1 + items.length) % items.length;
+          window.SFX.menuMove();
+        } else if (code === 'KeyS' || code === 'ArrowDown') {
+          e.preventDefault();
+          this.menuIndex = (this.menuIndex + 1) % items.length;
+          window.SFX.menuMove();
+        } else if (code === 'KeyA' || code === 'ArrowLeft') {
+          if (this.menuIndex === 1) {
+            this.cycleStage(-1);
+          } else if (this.menuIndex === 2) {
+            this.difficultyIndex = (this.difficultyIndex - 1 + this.difficulties.length) % this.difficulties.length;
+            window.SFX.menuMove();
+          } else if (this.menuIndex === 5) {
+            this.ui.btnMute.click();
+          }
+        } else if (code === 'KeyD' || code === 'ArrowRight') {
+          if (this.menuIndex === 1) {
+            this.cycleStage(1);
+          } else if (this.menuIndex === 2) {
+            this.difficultyIndex = (this.difficultyIndex + 1) % this.difficulties.length;
+            window.SFX.menuMove();
+          } else if (this.menuIndex === 5) {
+            this.ui.btnMute.click();
+          }
+        } else if (code === 'Space' || code === 'Enter') {
+          e.preventDefault();
+          this.triggerTitleMenuAction(this.menuIndex);
+        }
+        return;
+      }
+
+      // 2. PAUSE MENU NAVIGATION
+      if (this.state === 'paused') {
+        if (this.menuSubscreen !== 'main') {
+          if (code === 'Escape' || code === 'Space' || code === 'Enter' || code === 'Backspace') {
+            e.preventDefault();
+            this.menuSubscreen = 'main';
+            window.SFX.menuMove();
+          }
+          return;
+        }
+
+        const items = this.getPauseMenuItems();
+        if (code === 'Escape' || code === 'KeyP') {
+          e.preventDefault();
+          this.togglePause();
+        } else if (code === 'KeyW' || code === 'ArrowUp') {
+          e.preventDefault();
+          this.pauseIndex = (this.pauseIndex - 1 + items.length) % items.length;
+          window.SFX.menuMove();
+        } else if (code === 'KeyS' || code === 'ArrowDown') {
+          e.preventDefault();
+          this.pauseIndex = (this.pauseIndex + 1) % items.length;
+          window.SFX.menuMove();
+        } else if (code === 'Space' || code === 'Enter') {
+          e.preventDefault();
+          this.triggerPauseMenuAction(this.pauseIndex);
+        }
+        return;
+      }
+
+      // 3. VICTORY / GAME OVER SCREEN
+      if (this.state === 'victory' || this.state === 'gameover') {
+        if (code === 'Space' || code === 'Enter') {
+          e.preventDefault();
+          if (this.state === 'victory' && this.currentLevelIndex < window.GameData.LEVEL_META.length - 1) {
+            this.currentLevelIndex++;
+          }
+          this.startNewNight();
+        } else if (code === 'KeyR') {
+          e.preventDefault();
+          this.startNewNight();
+        } else if (code === 'Escape') {
+          e.preventDefault();
+          this.returnToTitleMenu();
+        }
+        return;
+      }
+
+      // 4. IN-GAME HOTKEYS
+      if (code === 'Escape' && !this.ui.isModalOpen()) {
+        e.preventDefault();
+        if (!this.ui.drawer.classList.contains('hidden')) {
+          this.ui.drawer.classList.add('hidden');
+        } else {
+          this.togglePause();
+        }
+        return;
+      }
+      if (code === 'KeyP' && !this.ui.isModalOpen()) {
+        e.preventDefault();
+        this.togglePause();
         return;
       }
       if (code === 'KeyR' && !this.ui.isModalOpen()) {
@@ -438,15 +690,95 @@ class ComeInVelvetGame {
       if (code === 'KeyS' || code === 'ArrowDown') this.input.down = false;
     });
 
+    // Mouse Hover support for GameMaker Menus
+    this.canvas.addEventListener('mousemove', e => {
+      if (this.state !== 'title' && this.state !== 'paused') return;
+      if (this.menuSubscreen !== 'main') return;
+
+      const rect = this.canvas.getBoundingClientRect();
+      const mx = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+      const my = (e.clientY - rect.top) * (this.canvas.height / rect.height);
+
+      if (this.state === 'title') {
+        const items = this.getTitleMenuItems();
+        for (let i = 0; i < items.length; i++) {
+          const by = 266 + i * 50;
+          if (mx >= 430 && mx <= 850 && my >= by && my <= by + 42) {
+            if (this.menuIndex !== i) {
+              this.menuIndex = i;
+              window.SFX.menuMove();
+            }
+            break;
+          }
+        }
+      } else if (this.state === 'paused') {
+        const items = this.getPauseMenuItems();
+        for (let i = 0; i < items.length; i++) {
+          const by = 224 + i * 48;
+          if (mx >= 440 && mx <= 840 && my >= by && my <= by + 40) {
+            if (this.pauseIndex !== i) {
+              this.pauseIndex = i;
+              window.SFX.menuMove();
+            }
+            break;
+          }
+        }
+      }
+    });
+
+    // Mouse Click support
     this.canvas.addEventListener('mousedown', e => {
       const rect = this.canvas.getBoundingClientRect();
-      const scaleX = this.canvas.width / rect.width;
-      const scaleY = this.canvas.height / rect.height;
-      const mx = (e.clientX - rect.left) * scaleX;
-      const my = (e.clientY - rect.top) * scaleY;
+      const mx = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+      const my = (e.clientY - rect.top) * (this.canvas.height / rect.height);
 
-      if (this.state === 'title' || this.state === 'victory' || this.state === 'gameover') {
-        this.startNewNight();
+      if (this.state === 'title') {
+        if (this.menuSubscreen !== 'main') {
+          this.menuSubscreen = 'main';
+          window.SFX.menuMove();
+          return;
+        }
+        const items = this.getTitleMenuItems();
+        for (let i = 0; i < items.length; i++) {
+          const by = 266 + i * 50;
+          if (mx >= 430 && mx <= 850 && my >= by && my <= by + 42) {
+            this.menuIndex = i;
+            this.triggerTitleMenuAction(i);
+            return;
+          }
+        }
+        return;
+      }
+
+      if (this.state === 'paused') {
+        if (this.menuSubscreen !== 'main') {
+          this.menuSubscreen = 'main';
+          window.SFX.menuMove();
+          return;
+        }
+        const items = this.getPauseMenuItems();
+        for (let i = 0; i < items.length; i++) {
+          const by = 224 + i * 48;
+          if (mx >= 440 && mx <= 840 && my >= by && my <= by + 40) {
+            this.pauseIndex = i;
+            this.triggerPauseMenuAction(i);
+            return;
+          }
+        }
+        return;
+      }
+
+      if (this.state === 'victory' || this.state === 'gameover') {
+        if (mx >= 360 && mx <= 625 && my >= 515 && my <= 570) {
+          if (this.state === 'victory' && this.currentLevelIndex < window.GameData.LEVEL_META.length - 1) {
+            this.currentLevelIndex++;
+          }
+          this.startNewNight();
+        } else if (mx >= 655 && mx <= 920 && my >= 515 && my <= 570) {
+          this.returnToTitleMenu();
+        } else {
+          this.startNewNight();
+        }
         return;
       }
 
@@ -474,6 +806,15 @@ class ComeInVelvetGame {
     if (this.windowAlertTimer > 0) this.windowAlertTimer = Math.max(0, this.windowAlertTimer - dt);
     if (this.atticAlertTimer > 0) this.atticAlertTimer = Math.max(0, this.atticAlertTimer - dt);
 
+    // Update level moving platforms and gimmicks
+    this.level.update(dt, this.animTime);
+
+    // Update decorative menu bats
+    for (const b of this.menuBats) {
+      b.x += b.vx * dt;
+      if (b.x > 1320) b.x = -40;
+    }
+
     if (this.state === 'title') {
       this.guests.forEach(g => g.update(dt, this.level, 0, this.velvet));
       return;
@@ -481,6 +822,7 @@ class ComeInVelvetGame {
 
     if (this.state !== 'playing') return;
 
+    const diff = this.getDifficulty();
     const timeMult = this.ui.isModalOpen() ? 0.35 : 1.0;
     this.nightElapsed += dt * timeMult;
 
@@ -488,12 +830,12 @@ class ComeInVelvetGame {
     if (newHourIdx !== this.currentHourIndex) {
       this.currentHourIndex = newHourIdx;
       window.SFX.clockChime();
-      this.ui.updateGuestbookContent(newHourIdx);
+      this.ui.updateGuestbookContent(newHourIdx, this.currentLevelIndex);
 
       if (newHourIdx === 1) {
         this.showBanner(
           '10:00 PM -- SECURITY LEVEL 2',
-          'TICKETS MUST START WITH "VV-" AND END IN AN EVEN NUMBER!',
+          this.getLevelMeta().rule10pm.toUpperCase(),
           5.0
         );
       } else if (newHourIdx === 2) {
@@ -516,13 +858,13 @@ class ComeInVelvetGame {
     this.doorSpawnTimer -= dt * timeMult;
     if (this.doorSpawnTimer <= 0) {
       this.spawnDoorGuest();
-      this.doorSpawnTimer = 9.5 - this.currentHourIndex * 1.4;
+      this.doorSpawnTimer = (9.5 - this.currentHourIndex * 1.4) * diff.spawnMult;
     }
 
     this.sneakSpawnTimer -= dt * timeMult;
     if (this.sneakSpawnTimer <= 0) {
       this.spawnSneakyCrasher();
-      this.sneakSpawnTimer = 24 - this.currentHourIndex * 5;
+      this.sneakSpawnTimer = (24 - this.currentHourIndex * 5) * diff.spawnMult;
     }
 
     if (!this.ui.isModalOpen()) {
@@ -570,7 +912,10 @@ class ComeInVelvetGame {
     const activeCrashers = this.getActiveCrashers();
     window.SFX.chaseMode = activeCrashers.length > 0;
     if (activeCrashers.length > 0) {
-      this.partyControl = Math.max(0, this.partyControl - activeCrashers.length * 1.45 * dt);
+      this.partyControl = Math.max(
+        0,
+        this.partyControl - activeCrashers.length * 1.45 * diff.drainMult * dt
+      );
       if (this.partyControl <= 0) {
         this.partyControl = 0;
         this.state = 'gameover';
@@ -617,30 +962,96 @@ class ComeInVelvetGame {
     }
   }
 
-  // Helper: Draw classic GameMaker hard-edged pixel box with offset shadow
-  drawGMBox(ctx, x, y, w, h, bg = '#140b24', border = '#f4e4bc', innerBorder = '#4b2b78') {
-    // Hard black pixel shadow
+  // Helper: Draw classic GameMaker hard-edged pixel box with offset shadow & corner rivets
+  drawGMBox(ctx, x, y, w, h, bg = '#140b24', border = '#f4e4bc', innerBorder = '#4b2b78', rivets = false) {
     ctx.fillStyle = '#05020a';
     ctx.fillRect(x + 4, y + 4, w, h);
 
-    // Main fill
     ctx.fillStyle = bg;
     ctx.fillRect(x, y, w, h);
 
-    // Inner border
     if (innerBorder) {
       ctx.strokeStyle = innerBorder;
       ctx.lineWidth = 2;
-      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+      ctx.strokeRect(x + 4, y + 4, w - 8, h - 8);
     }
 
-    // Outer crisp border
     ctx.strokeStyle = border;
     ctx.lineWidth = 2.5;
     ctx.strokeRect(x, y, w, h);
+
+    if (rivets) {
+      ctx.fillStyle = border;
+      ctx.fillRect(x + 6, y + 6, 4, 4);
+      ctx.fillRect(x + w - 10, y + 6, 4, 4);
+      ctx.fillRect(x + 6, y + h - 10, 4, 4);
+      ctx.fillRect(x + w - 10, y + h - 10, 4, 4);
+    }
   }
 
-  // Helper: Segmented arcade bar
+  // Helper: Draw a spooky-cute Bat Wing Crest Emblem for the Menu Header
+  drawMenuCrest(ctx, cx, cy) {
+    ctx.save();
+    ctx.translate(cx, cy);
+
+    const flap = Math.sin(this.animTime * 4) * 4;
+
+    // Left & Right Bat Wings behind crest
+    ctx.fillStyle = '#2d124d';
+    ctx.strokeStyle = '#ffcb47';
+    ctx.lineWidth = 2;
+
+    // Left Wing
+    ctx.beginPath();
+    ctx.moveTo(-20, 0);
+    ctx.lineTo(-78, -18 - flap);
+    ctx.lineTo(-66, 8);
+    ctx.lineTo(-42, 4);
+    ctx.lineTo(-28, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Right Wing
+    ctx.beginPath();
+    ctx.moveTo(20, 0);
+    ctx.lineTo(78, -18 - flap);
+    ctx.lineTo(66, 8);
+    ctx.lineTo(42, 4);
+    ctx.lineTo(28, 14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Center Pumpkin Emblem
+    ctx.fillStyle = '#ff7b1c';
+    ctx.strokeStyle = '#05020a';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, 2, 22, 17, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Stem
+    ctx.fillStyle = '#3cd688';
+    ctx.fillRect(-3, -20, 6, 7);
+
+    // Glowing Eyes & Grin
+    ctx.fillStyle = '#ffcb47';
+    ctx.beginPath();
+    ctx.moveTo(-10, -1);
+    ctx.lineTo(-5, -7);
+    ctx.lineTo(-2, 0);
+    ctx.closePath();
+    ctx.moveTo(10, -1);
+    ctx.lineTo(5, -7);
+    ctx.lineTo(2, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.restore();
+  }
+
   drawSegmentedBar(ctx, x, y, w, h, pct, fillColor, segments = 10) {
     ctx.fillStyle = '#080312';
     ctx.fillRect(x, y, w, h);
@@ -649,7 +1060,6 @@ class ComeInVelvetGame {
     ctx.fillStyle = fillColor;
     ctx.fillRect(x + 2, y + 2, fillW, h - 4);
 
-    // Segment dividers
     ctx.fillStyle = '#080312';
     const segW = w / segments;
     for (let i = 1; i < segments; i++) {
@@ -706,61 +1116,56 @@ class ComeInVelvetGame {
     for (const g of this.guests) {
       window.GameData.drawGuestSprite(ctx, g.x, g.y, g, this.animTime, 1);
 
-      // Door Queue Front Guest Prompt
       if (g.state === 'queue' && queue[0] === g && this.state === 'playing') {
         const distToDoor = Math.hypot(this.velvet.x - this.level.frontDoor.x, this.velvet.y - 618);
         const canQuestion = distToDoor <= 115;
 
-        // Patience bar
         ctx.fillStyle = '#080312';
         ctx.fillRect(g.x - 21, g.y - 47, 42, 7);
         ctx.fillStyle = g.patience > 35 ? '#3cd688' : '#e83b55';
         ctx.fillRect(g.x - 20, g.y - 46, (40 * Math.max(0, g.patience)) / 100, 5);
 
         const pulse = Math.floor(Math.sin(this.animTime * 7) * 2);
-        const tagW = 118;
+        const tagW = 132;
         this.drawGMBox(
           ctx,
           g.x - tagW / 2,
-          g.y - 74 + pulse,
+          g.y - 76 + pulse,
           tagW,
-          22,
+          24,
           canQuestion ? '#ffcb47' : '#140b24',
           '#f4e4bc',
           null
         );
 
         ctx.fillStyle = canQuestion ? '#12061f' : '#ffcb47';
-        ctx.font = '700 9px Silkscreen, monospace';
+        ctx.font = '700 12px "Chakra Petch", monospace';
         ctx.textAlign = 'center';
         ctx.fillText(canQuestion ? '[E] INTERROGATE' : 'VISITOR WAITING', g.x, g.y - 60 + pulse);
       }
 
-      // Fleeing / Sneaking Gatecrasher Marker
       if (g.state === 'fleeing' || g.state === 'sneaking') {
         const bounce = Math.floor(Math.sin(this.animTime * 12) * 3);
-        this.drawGMBox(ctx, g.x - 58, g.y - 68 + bounce, 116, 20, '#9e1b34', '#ffcb47', null);
+        this.drawGMBox(ctx, g.x - 66, g.y - 70 + bounce, 132, 22, '#9e1b34', '#ffcb47', null);
 
         ctx.fillStyle = '#fff';
-        ctx.font = '700 8.5px Silkscreen, monospace';
+        ctx.font = '700 11.5px "Chakra Petch", monospace';
         ctx.textAlign = 'center';
         ctx.fillText('! CRASHER [J/CLICK]', g.x, g.y - 55 + bounce);
 
-        // Escape timer bar
         ctx.fillStyle = '#080312';
         ctx.fillRect(g.x - 25, g.y - 45, 50, 6);
         ctx.fillStyle = '#ff8533';
         ctx.fillRect(g.x - 24, g.y - 44, (48 * Math.max(0, g.escapeTimer)) / g.maxEscapeTimer, 4);
       }
 
-      // Speech callout bubble
       if (g.calloutTimer > 0 && g.calloutText) {
         ctx.save();
-        ctx.font = '600 12px "Pixelify Sans", monospace';
-        const w = Math.min(230, ctx.measureText(g.calloutText).width + 18);
-        this.drawGMBox(ctx, g.x - w / 2, g.y - 98, w, 22, '#0e061a', '#f4e4bc', null);
+        ctx.font = '600 13.5px "Chakra Petch", sans-serif';
+        const w = Math.min(260, ctx.measureText(g.calloutText).width + 20);
+        this.drawGMBox(ctx, g.x - w / 2, g.y - 100, w, 24, '#0e061a', '#f4e4bc', null);
 
-        ctx.fillStyle = '#f7eed7';
+        ctx.fillStyle = '#ffffff';
         ctx.textAlign = 'center';
         ctx.fillText(g.calloutText, g.x, g.y - 83);
         ctx.restore();
@@ -780,7 +1185,7 @@ class ComeInVelvetGame {
 
     for (const ft of this.floatingTexts) {
       ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
-      ctx.font = '700 11px Silkscreen, monospace';
+      ctx.font = '700 14px "Chakra Petch", monospace';
       ctx.textAlign = 'center';
       ctx.fillStyle = '#05020a';
       ctx.fillText(ft.text, ft.x + 2, ft.y + 2);
@@ -789,9 +1194,12 @@ class ComeInVelvetGame {
     }
     ctx.globalAlpha = 1;
 
-    // HUD or State Overlays
+    // HUD or Menu Screens
     if (this.state === 'playing') {
       this.drawHUD(ctx);
+    } else if (this.state === 'paused') {
+      this.drawHUD(ctx);
+      this.drawPauseScreen(ctx);
     } else if (this.state === 'title') {
       this.drawTitleScreen(ctx);
     } else if (this.state === 'victory') {
@@ -806,10 +1214,10 @@ class ComeInVelvetGame {
   drawHUD(ctx) {
     ctx.save();
 
-    // 1. Party Control Box (Top Left)
+    // 1. Party Control Box
     this.drawGMBox(ctx, 16, 12, 255, 58);
-    ctx.fillStyle = '#f7eed7';
-    ctx.font = '700 10px Silkscreen, monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 13px "Chakra Petch", monospace';
     ctx.textAlign = 'left';
     ctx.fillText(`PARTY CONTROL: ${Math.ceil(this.partyControl)}%`, 28, 31);
 
@@ -819,21 +1227,22 @@ class ComeInVelvetGame {
 
     // 2. Bat Magic Box
     this.drawGMBox(ctx, 283, 12, 225, 58, '#140b24', this.velvet.isBat ? '#ff5ca8' : '#f4e4bc');
-    ctx.fillStyle = '#e5b8ff';
-    ctx.font = '700 10px Silkscreen, monospace';
-    ctx.fillText(this.velvet.isBat ? 'BAT FORM: ON' : 'BAT MP [SHIFT]:', 295, 31);
+    ctx.fillStyle = '#f0d4ff';
+    ctx.font = '700 13px "Chakra Petch", monospace';
+    ctx.fillText(this.velvet.isBat ? 'BAT FORM: ACTIVE' : 'BAT MP [SHIFT]:', 295, 31);
     this.drawSegmentedBar(ctx, 295, 39, 200, 18, this.velvet.batEnergy, '#a84cff', 8);
 
-    // 3. Midnight Clock Box (Center)
+    // 3. Midnight Clock & Stage Box
+    const lvlMeta = this.getLevelMeta();
     this.drawGMBox(ctx, 520, 12, 240, 58, '#140b24', '#ffcb47');
     ctx.fillStyle = '#ffcb47';
-    ctx.font = '700 15px Silkscreen, monospace';
+    ctx.font = '700 16px Silkscreen, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(this.getTimeString(), 640, 36);
+    ctx.fillText(this.getTimeString(), 640, 35);
 
-    ctx.fillStyle = '#b09bc9';
-    ctx.font = '700 8.5px Silkscreen, monospace';
-    ctx.fillText('GOAL: SURVIVE TO 12:00 AM', 640, 56);
+    ctx.fillStyle = '#f0d4ff';
+    ctx.font = '700 12px "Chakra Petch", monospace';
+    ctx.fillText(lvlMeta.shortName, 640, 56);
 
     // 4. Score & Manor Status Box
     const activeCrashers = this.getActiveCrashers().length;
@@ -848,11 +1257,11 @@ class ComeInVelvetGame {
     );
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffcb47';
-    ctx.font = '700 11px Silkscreen, monospace';
-    ctx.fillText(`SCORE: ${this.score} (x${this.combo})`, 786, 33);
+    ctx.font = '700 14px "Chakra Petch", monospace';
+    ctx.fillText(`SCORE: ${this.score}  (x${this.combo})`, 786, 33);
 
-    ctx.fillStyle = activeCrashers > 0 ? '#ff6e83' : '#3cd688';
-    ctx.font = '700 9.5px Silkscreen, monospace';
+    ctx.fillStyle = activeCrashers > 0 ? '#ff8597' : '#5ef2a8';
+    ctx.font = '700 12.5px "Chakra Petch", monospace';
     ctx.fillText(
       activeCrashers > 0
         ? `! ${activeCrashers} CRASHER(S) LOOSE !`
@@ -861,144 +1270,438 @@ class ComeInVelvetGame {
       54
     );
 
-    // 5. Shift Orders Box (Far Right)
+    // 5. Shift Orders Box (Stage-Specific Password & Ticket Rule - Crisp & Easy to Read)
     this.drawGMBox(ctx, 1052, 12, 212, 58);
-    ctx.fillStyle = '#ff8533';
-    ctx.font = '700 9px Silkscreen, monospace';
-    ctx.fillText('PASS: "BLOOD MOON"', 1064, 29);
-    ctx.fillStyle = '#f7eed7';
-    ctx.font = '700 8.5px Silkscreen, monospace';
-    ctx.fillText('* NO MUDDY BOOTS', 1064, 44);
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 12px "Space Mono", monospace';
+    ctx.fillText(`PASS: "${lvlMeta.password}"`, 1062, 28);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 11.5px "Chakra Petch", monospace';
+    ctx.fillText('• NO MUDDY BOOTS', 1062, 44);
+    const shortRule =
+      this.currentLevelIndex === 0
+        ? '• TICKET: VV- + EVEN#'
+        : this.currentLevelIndex === 1
+          ? '• TICKET: AL- + ODD#'
+          : '• TICKET: CW- + MULT OF 3';
+    ctx.fillStyle = '#72f7bc';
     ctx.fillText(
-      this.currentHourIndex >= 1 ? '* TICKET: VV- + EVEN#' : '* [TAB] GUEST LEDGER',
-      1064,
+      this.currentHourIndex >= 1 ? shortRule : '• [TAB] GUEST LEDGER',
+      1062,
       59
     );
 
     // 6. Bottom In-Canvas Retro Control Legend Strip
-    ctx.fillStyle = 'rgba(10, 4, 18, 0.88)';
-    ctx.fillRect(0, 696, 1280, 24);
+    ctx.fillStyle = 'rgba(10, 4, 18, 0.92)';
+    ctx.fillRect(0, 694, 1280, 26);
     ctx.strokeStyle = '#4b2b78';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, 696);
-    ctx.lineTo(1280, 696);
+    ctx.moveTo(0, 694);
+    ctx.lineTo(1280, 694);
     ctx.stroke();
 
-    ctx.fillStyle = '#d4c2eb';
-    ctx.font = '700 9px Silkscreen, monospace';
+    ctx.fillStyle = '#e5d4ff';
+    ctx.font = '700 12.5px "Chakra Petch", monospace';
     ctx.textAlign = 'center';
     ctx.fillText(
-      '[A/D] MOVE   [W/SPACE] JUMP   [S] DROP   [E] INTERROGATE DOOR   [SHIFT] BAT FORM   [J/CLICK] SWOOP CATCH',
+      '[A/D] MOVE   [W/SPACE] JUMP   [S] DROP   [E] INTERROGATE   [SHIFT] BAT FORM   [J/CLICK] SWOOP   [TAB] LEDGER   [ESC] PAUSE',
       640,
       712
     );
 
-    // 7. Hourly Announcement Banner
     if (this.bannerTimer > 0) {
-      this.drawGMBox(ctx, 310, 86, 660, 58, '#1a0c30', '#ffcb47');
+      this.drawGMBox(ctx, 270, 86, 740, 62, '#1a0c30', '#ffcb47');
       ctx.textAlign = 'center';
       ctx.fillStyle = '#ffcb47';
-      ctx.font = '700 13px Silkscreen, monospace';
-      ctx.fillText(this.bannerText, 640, 111);
+      ctx.font = '700 15px Silkscreen, monospace';
+      ctx.fillText(this.bannerText, 640, 112);
 
-      ctx.fillStyle = '#f7eed7';
-      ctx.font = '700 9.5px Silkscreen, monospace';
-      ctx.fillText(this.bannerSub, 640, 131);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 14px "Chakra Petch", monospace';
+      ctx.fillText(this.bannerSub, 640, 134);
     }
 
     ctx.restore();
   }
 
+  // ==========================================================================
+  // GAMEMAKER MAIN TITLE MENU & SUB-SCREENS
+  // ==========================================================================
   drawTitleScreen(ctx) {
+    ctx.save();
+
+    // Atmospheric twilight vignette over live mansion background
+    ctx.fillStyle = 'rgba(9, 4, 18, 0.68)';
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Flying background bats across the sky
+    for (const b of this.menuBats) {
+      const by = b.y + Math.sin(this.animTime * 5 + b.phase) * 14;
+      const wing = Math.sin(this.animTime * 18 + b.phase) * 6;
+      ctx.strokeStyle = '#a864ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(b.x - 9, by - wing);
+      ctx.lineTo(b.x, by);
+      ctx.lineTo(b.x + 9, by - wing);
+      ctx.stroke();
+    }
+
+    if (this.menuSubscreen === 'howto') {
+      this.drawHowToPlaySubscreen(ctx);
+      ctx.restore();
+      return;
+    }
+
+    if (this.menuSubscreen === 'codex') {
+      this.drawCodexSubscreen(ctx);
+      ctx.restore();
+      return;
+    }
+
+    // 1. TOP GOTHIC-PIXEL LOGO BANNER
+    this.drawGMBox(ctx, 260, 48, 760, 186, '#140b24', '#f4e4bc', '#6838a8', true);
+    this.drawMenuCrest(ctx, 640, 48);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff964f';
+    ctx.font = '700 13px "Chakra Petch", monospace';
+    ctx.fillText('* SPOOKY-CUTE 2D GATEKEEPER PLATFORMER *', 640, 94);
+
+    // Layered 3D Pixel Title
+    ctx.font = '700 48px Silkscreen, monospace';
+    ctx.fillStyle = '#05020a';
+    ctx.fillText('COME IN, VELVET!', 645, 152);
+    ctx.fillStyle = '#9e245a';
+    ctx.fillText('COME IN, VELVET!', 642, 149);
+    ctx.fillStyle = '#ffcb47';
+    ctx.fillText('COME IN, VELVET!', 640, 146);
+
+    // Theme Ribbon inside header
+    ctx.fillStyle = '#251242';
+    ctx.fillRect(320, 172, 640, 30);
+    ctx.strokeStyle = '#8b4fff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(320, 172, 640, 30);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 13.5px "Chakra Petch", monospace';
+    ctx.fillText(
+      `STAGE PREVIEW: ${this.getLevelMeta().shortName}   //   SECRET PASS: "${this.getLevelMeta().password}"`,
+      640,
+      192
+    );
+
+    // 2. LEFT CHARACTER PEDESTAL: VELVET (cycles between Witch & Bat Form!)
+    this.drawGMBox(ctx, 135, 266, 255, 292, '#140b24', '#6b43a3', '#2d164d', true);
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 14px "Chakra Petch", monospace';
+    ctx.fillText('GATEKEEPER HEROINE', 262, 298);
+
+    // Spotlight circle under Velvet
+    ctx.fillStyle = 'rgba(168, 76, 255, 0.18)';
+    ctx.beginPath();
+    ctx.ellipse(262, 428, 58, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const showBatPreview = Math.floor(this.animTime / 3.5) % 2 === 1;
+    ctx.save();
+    ctx.translate(262, 408);
+    ctx.scale(1.85, 1.85);
+    window.GameData.drawVelvetSprite(
+      ctx,
+      { x: 0, y: 0, vx: 20, facing: 1, isBat: showBatPreview, swoopTimer: 0 },
+      this.animTime
+    );
+    ctx.restore();
+
+    ctx.fillStyle = '#f0d4ff';
+    ctx.font = '700 13px "Chakra Petch", monospace';
+    ctx.fillText(showBatPreview ? '[ VAMPIRE BAT FORM ]' : '[ VELVET WITCH FORM ]', 262, 496);
+    ctx.fillStyle = '#d4c2eb';
+    ctx.font = '600 13.5px "Chakra Petch", sans-serif';
+    ctx.fillText('Press [SHIFT] in-game to morph!', 262, 522);
+
+    // 3. RIGHT CHARACTER PEDESTAL: CYCLING PARTY GUESTS & CRASHERS
+    this.drawGMBox(ctx, 890, 266, 255, 292, '#140b24', '#6b43a3', '#2d164d', true);
+    const vipIdx = Math.floor(this.animTime / 2.5) % window.GameData.VIP_ROSTER.length;
+    const sampleVip = window.GameData.VIP_ROSTER[vipIdx];
+    const isSusSample = Math.floor(this.animTime / 2.5) % 2 === 1;
+
+    ctx.fillStyle = isSusSample ? '#ff8597' : '#5ef2a8';
+    ctx.font = '700 14px "Chakra Petch", monospace';
+    ctx.fillText(isSusSample ? 'UNINVITED CRASHER' : 'INVITED VIP GUEST', 1017, 298);
+
+    ctx.fillStyle = isSusSample ? 'rgba(232, 59, 85, 0.16)' : 'rgba(60, 214, 136, 0.16)';
+    ctx.beginPath();
+    ctx.ellipse(1017, 428, 58, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    window.GameData.drawGuestSprite(
+      ctx,
+      1017,
+      408,
+      {
+        costume: sampleVip.costume,
+        facing: -1,
+        vx: 20,
+        hasMuddyBoots: isSusSample,
+        state: isSusSample ? 'fleeing' : 'party',
+        bobOffset: 0
+      },
+      this.animTime,
+      1.85
+    );
+
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 13.5px "Chakra Petch", monospace';
+    ctx.fillText(sampleVip.costume.toUpperCase(), 1017, 496);
+    ctx.fillStyle = '#d4c2eb';
+    ctx.font = '600 13.5px "Chakra Petch", sans-serif';
+    ctx.fillText(isSusSample ? 'Has Imp Horns & Muddy Boots!' : `VIP: ${sampleVip.name}`, 1017, 522);
+
+    // 4. CENTER INTERACTIVE GAMEMAKER MENU STACK (6 ITEMS)
+    const menuItems = this.getTitleMenuItems();
+    menuItems.forEach((item, idx) => {
+      const selected = idx === this.menuIndex;
+      const bx = 430;
+      const by = 266 + idx * 50;
+      const bw = 420;
+      const bh = 42;
+
+      this.drawGMBox(
+        ctx,
+        bx,
+        by,
+        bw,
+        bh,
+        selected ? '#381a63' : '#160b28',
+        selected ? '#ffcb47' : '#5c388c',
+         null
+      );
+
+      ctx.textAlign = 'center';
+      ctx.font = '700 15px "Chakra Petch", monospace';
+
+      if (selected) {
+        const curShift = Math.floor(Math.sin(this.animTime * 10) * 4);
+        ctx.fillStyle = '#ff8533';
+        ctx.fillText('►', bx + 20 + curShift, by + 27);
+        ctx.fillText('◄', bx + bw - 20 - curShift, by + 27);
+        ctx.fillStyle = '#ffcb47';
+      } else {
+        ctx.fillStyle = '#e5d4ff';
+      }
+
+      ctx.fillText(item.label, 640, by + 27);
+    });
+
+    // 5. BOTTOM DESCRIPTION & CONTROLS FOOTER BOX
+    this.drawGMBox(ctx, 210, 582, 860, 78, '#10071f', '#f4e4bc', '#452673');
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '600 16px "Chakra Petch", sans-serif';
+    ctx.fillText(menuItems[this.menuIndex].desc, 640, 613);
+
+    ctx.fillStyle = '#c4b0de';
+    ctx.font = '700 12.5px "Chakra Petch", monospace';
+    ctx.fillText(
+      '[W/S or UP/DOWN] SELECT     [SPACE / ENTER / CLICK] CONFIRM     [A/D] CHANGE STAGE / DIFFICULTY',
+      640,
+      643
+    );
+  }
+
+  drawHowToPlaySubscreen(ctx) {
+    this.drawGMBox(ctx, 160, 66, 960, 588, '#140b24', '#f4e4bc', '#6838a8', true);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 24px Silkscreen, monospace';
+    ctx.fillText('GATEKEEPER FIELD MANUAL', 640, 114);
+
+    ctx.fillStyle = '#ff964f';
+    ctx.font = '700 14px "Chakra Petch", monospace';
+    ctx.fillText('HOW TO SURVIVE THE NIGHT SHIFT ACROSS ALL 3 MANOR STAGES', 640, 140);
+
+    const cards = [
+      {
+        tag: 'STEP 01 // FRONT DOOR CHECK',
+        title: 'INTERROGATE VISITORS [E]',
+        desc: 'Stand by the Front Door and press [E]. Press [SPACE] to ask 3 questions one-by-one: (1) Name & Ticket, (2) Stage Password, and (3) Boots Check. Press [F] to Admit or [X] if Uninvited!'
+      },
+      {
+        tag: 'STEP 02 // 3 UNIQUE STAGES',
+        title: 'MASTER STAGE GIMMICKS',
+        desc: 'LVL 1 Ballroom: Chandeliers & Bounce Ottomans. LVL 2 Alchemy: Moving Platforms & Warp Mirrors. LVL 3 Belfry: Updraft Wind Streams & Brass Clockwork Gears!'
+      },
+      {
+        tag: 'STEP 03 // VAMPIRE BAT FORM',
+        title: 'MORPH & FLY [SHIFT]',
+        desc: 'Uninvited crashers will bolt into the manor or sneak through the 2nd-Floor Window & 3rd-Floor Attic! Press [SHIFT] to morph into a Vampire Bat and fly freely across all 3 floors!'
+      },
+      {
+        tag: 'STEP 04 // SONIC SWOOP',
+        title: 'CATCH GATECRASHERS [J / CLICK]',
+        desc: 'Press [J] or [LEFT CLICK] to Sonic Swoop and banish fleeing gatecrashers before they drain Party Control or escape out the Attic Exit! Grab Soul Candies to refill Bat MP.'
+      }
+    ];
+
+    cards.forEach((c, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const bx = 200 + col * 450;
+      const by = 166 + row * 195;
+
+      this.drawGMBox(ctx, bx, by, 430, 175, '#1c0f30', '#6b43a3', null);
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ff964f';
+      ctx.font = '700 12.5px "Chakra Petch", monospace';
+      ctx.fillText(c.tag, bx + 16, by + 28);
+
+      ctx.fillStyle = '#ffcb47';
+      ctx.font = '700 16px "Chakra Petch", monospace';
+      ctx.fillText(c.title, bx + 16, by + 52);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '500 15px "Chakra Petch", sans-serif';
+      this.wrapText(ctx, c.desc, bx + 16, by + 80, 398, 22);
+    });
+
+    this.drawGMBox(ctx, 450, 578, 380, 48, '#381a63', '#ffcb47', null);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 15px "Chakra Petch", monospace';
+    ctx.fillText('◄ BACK TO MENU [ESC / SPACE / CLICK]', 640, 607);
+  }
+
+  drawCodexSubscreen(ctx) {
+    this.drawGMBox(ctx, 140, 56, 1000, 608, '#140b24', '#f4e4bc', '#6838a8', true);
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 22px Silkscreen, monospace';
+    ctx.fillText('OFFICIAL VIP GUEST CODEX', 640, 102);
+
+    ctx.fillStyle = '#f0e6ff';
+    ctx.font = '600 15.5px "Chakra Petch", sans-serif';
+    ctx.fillText(
+      'Study these 8 invited VIPs! At 11:00 PM (and in Stages 2-3), impostors steal their names while wearing the wrong costume!',
+      640,
+      130
+    );
+
+    window.GameData.VIP_ROSTER.forEach((vip, idx) => {
+      const col = idx % 4;
+      const row = Math.floor(idx / 4);
+      const bx = 176 + col * 236;
+      const by = 152 + row * 204;
+
+      this.drawGMBox(ctx, bx, by, 218, 186, '#1c0f30', '#6b43a3', null);
+
+      // Animated Sprite Preview
+      window.GameData.drawGuestSprite(
+        ctx,
+        bx + 109,
+        by + 72,
+        {
+          costume: vip.costume,
+          facing: 1,
+          vx: 0,
+          hasMuddyBoots: false,
+          state: 'party',
+          bobOffset: idx
+        },
+        this.animTime,
+        1.45
+      );
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 15px "Chakra Petch", monospace';
+      ctx.fillText(vip.name.toUpperCase(), bx + 109, by + 130);
+
+      ctx.fillStyle = '#5ef2a8';
+      ctx.font = '700 13px "Space Mono", monospace';
+      ctx.fillText(vip.costume.toUpperCase(), bx + 109, by + 151);
+
+      ctx.fillStyle = '#d4c2eb';
+      ctx.font = '600 13.5px "Chakra Petch", sans-serif';
+      ctx.fillText(`Treat: ${vip.favTreat}`, bx + 109, by + 172);
+    });
+
+    this.drawGMBox(ctx, 450, 586, 380, 48, '#381a63', '#ffcb47', null);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 15px "Chakra Petch", monospace';
+    ctx.fillText('◄ BACK TO MENU [ESC / SPACE / CLICK]', 640, 615);
+  }
+
+  // ==========================================================================
+  // IN-GAME PAUSE MENU OVERLAY
+  // ==========================================================================
+  drawPauseScreen(ctx) {
     ctx.save();
     ctx.fillStyle = 'rgba(8, 3, 15, 0.78)';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    this.drawGMBox(ctx, 210, 78, 860, 555, '#140b24', '#f4e4bc', '#6838a8');
+    if (this.menuSubscreen === 'howto') {
+      this.drawHowToPlaySubscreen(ctx);
+      ctx.restore();
+      return;
+    }
+
+    this.drawGMBox(ctx, 380, 120, 520, 475, '#140b24', '#f4e4bc', '#6838a8', true);
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#ff8533';
-    ctx.font = '700 11px Silkscreen, monospace';
-    ctx.fillText('-- SPOOKY 2D GATEKEEPER PLATFORMER  |  THEME: UNINVITED --', 640, 122);
-
-    // Pixel Drop-Shadow Title
-    ctx.fillStyle = '#05020a';
-    ctx.font = '700 42px Silkscreen, monospace';
-    ctx.fillText('COME IN, VELVET!', 644, 179);
     ctx.fillStyle = '#ffcb47';
-    ctx.fillText('COME IN, VELVET!', 640, 175);
+    ctx.font = '700 22px Silkscreen, monospace';
+    ctx.fillText('-- SHIFT PAUSED --', 640, 170);
 
-    ctx.fillStyle = '#d8c7f0';
-    ctx.font = '500 17px "Pixelify Sans", monospace';
+    ctx.fillStyle = '#e5d4ff';
+    ctx.font = '700 13px "Chakra Petch", monospace';
     ctx.fillText(
-      'Play as Velvet, the party gatekeeper. Keep the manor under control until 12:00 AM Midnight!',
+      `${this.getLevelMeta().shortName}   |   ${this.getTimeString()}   |   CONTROL: ${Math.ceil(this.partyControl)}%`,
       640,
-      212
+      198
     );
 
-    const pillars = [
-      {
-        tag: '[01] INTERROGATE',
-        title: 'QUESTION VISITORS STEP-BY-STEP',
-        desc: 'Press [E] at the door. Use [SPACE] to check tickets, ask the secret password ("BLOOD MOON"), and inspect boots.'
-      },
-      {
-        tag: '[02] SPOT SNEAKS',
-        title: 'GUARD WINDOWS & ATTIC',
-        desc: 'Turn away impostors at the gate and watch for crashers climbing the 2nd-floor Window and 3rd-floor Chimney!'
-      },
-      {
-        tag: '[03] BAT MORPH',
-        title: 'FLY & SONIC SWOOP',
-        desc: 'Press [SHIFT] to morph into a Vampire Bat and [J] or [CLICK] to Sonic Swoop and catch fleeing gatecrashers!'
-      },
-      {
-        tag: '[04] MIDNIGHT',
-        title: 'HOLD THE FORT TO 12:00 AM',
-        desc: 'Security tightens at 10 PM and 11 PM. Keep Party Control above 0% until the clock strikes Midnight!'
+    const items = this.getPauseMenuItems();
+    items.forEach((item, idx) => {
+      const selected = idx === this.pauseIndex;
+      const bx = 440;
+      const by = 224 + idx * 48;
+      const bw = 400;
+      const bh = 40;
+
+      this.drawGMBox(
+        ctx,
+        bx,
+        by,
+        bw,
+        bh,
+        selected ? '#381a63' : '#1a0d30',
+        selected ? '#ffcb47' : '#5c388c',
+        null
+      );
+
+      ctx.font = '700 14.5px "Chakra Petch", monospace';
+      if (selected) {
+        ctx.fillStyle = '#ff8533';
+        ctx.fillText('►', bx + 22, by + 26);
+        ctx.fillText('◄', bx + bw - 22, by + 26);
+        ctx.fillStyle = '#ffcb47';
+      } else {
+        ctx.fillStyle = '#e5d4ff';
       }
-    ];
-
-    pillars.forEach((p, i) => {
-      const col = i % 2;
-      const row = Math.floor(i / 2);
-      const bx = 250 + col * 396;
-      const by = 240 + row * 122;
-
-      this.drawGMBox(ctx, bx, by, 384, 106, '#1c0f30', '#6b43a3', null);
-
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ff8533';
-      ctx.font = '700 9px Silkscreen, monospace';
-      ctx.fillText(p.tag, bx + 14, by + 22);
-
-      ctx.fillStyle = '#ffcb47';
-      ctx.font = '700 10.5px Silkscreen, monospace';
-      ctx.fillText(p.title, bx + 14, by + 40);
-
-      ctx.fillStyle = '#e4d8f5';
-      ctx.font = '500 14px "Pixelify Sans", monospace';
-      this.wrapText(ctx, p.desc, bx + 14, by + 62, 356, 17);
+      ctx.fillText(item.label, 640, by + 26);
     });
 
-    // Blinking Arcade Start Button
-    const blink = Math.floor(this.animTime * 3) % 2 === 0;
-    this.drawGMBox(
-      ctx,
-      430,
-      520,
-      420,
-      58,
-      blink ? '#208c5a' : '#176e46',
-      '#f4e4bc',
-      null
-    );
-
-    ctx.textAlign = 'center';
     ctx.fillStyle = '#ffffff';
-    ctx.font = '700 14px Silkscreen, monospace';
-    ctx.fillText('► PRESS [SPACE] OR CLICK TO START', 640, 554);
+    ctx.font = '600 15.5px "Chakra Petch", sans-serif';
+    ctx.fillText(items[this.pauseIndex].desc, 640, 556);
 
     ctx.restore();
   }
@@ -1008,6 +1711,8 @@ class ComeInVelvetGame {
     ctx.fillStyle = 'rgba(8, 3, 15, 0.84)';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+    const hasNextStage = isVictory && this.currentLevelIndex < window.GameData.LEVEL_META.length - 1;
+
     this.drawGMBox(
       ctx,
       290,
@@ -1016,23 +1721,26 @@ class ComeInVelvetGame {
       505,
       '#140b24',
       isVictory ? '#3cd688' : '#e83b55',
-      '#4b2b78'
+      '#4b2b78',
+      true
     );
 
     ctx.textAlign = 'center';
     ctx.fillStyle = isVictory ? '#3cd688' : '#e83b55';
-    ctx.font = '700 28px Silkscreen, monospace';
+    ctx.font = '700 25px Silkscreen, monospace';
     ctx.fillText(
-      isVictory ? '12:00 AM -- NIGHT CLEAR!' : 'MANOR OVERRUN -- GAME OVER',
+      isVictory
+        ? `12:00 AM -- ${this.getLevelMeta().shortName} CLEAR!`
+        : 'MANOR OVERRUN -- GAME OVER',
       640,
       168
     );
 
-    ctx.fillStyle = '#f7eed7';
-    ctx.font = '500 17px "Pixelify Sans", monospace';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 17px "Chakra Petch", sans-serif';
     ctx.fillText(
       isVictory
-        ? 'Velvet kept every uninvited troublemaker in check until Midnight!'
+        ? `Velvet protected ${this.getLevelMeta().name} until Midnight!`
         : 'Too many uninvited gatecrashers overwhelmed the mansion party!',
       640,
       204
@@ -1044,28 +1752,38 @@ class ComeInVelvetGame {
     else if (!isVictory) rank = 'C (OVERRUN)';
 
     ctx.fillStyle = '#ffcb47';
-    ctx.font = '700 15px Silkscreen, monospace';
+    ctx.font = '700 17px "Chakra Petch", monospace';
     ctx.fillText(`RANK: ${rank}   |   SCORE: ${this.score}`, 640, 248);
 
     const statLines = [
-      `VIP GUESTS ADMITTED ......... ${this.stats.invitedAdmitted}`,
-      `GATECRASHERS CAUGHT ......... ${this.stats.crashersCaught}`,
-      `CRASHERS SLIPPED AT DOOR .... ${this.stats.slippedThroughDoor}`,
-      `CRASHERS ESCAPED IN MANOR ... ${this.stats.crashersEscaped}`,
-      `FALSE ACCUSATIONS ........... ${this.stats.falseAccusations}`,
-      `FINAL PARTY CONTROL ......... ${Math.ceil(this.partyControl)}%`
+      `VIP GUESTS ADMITTED ........... ${this.stats.invitedAdmitted}`,
+      `GATECRASHERS CAUGHT ........... ${this.stats.crashersCaught}`,
+      `CRASHERS SLIPPED AT DOOR ...... ${this.stats.slippedThroughDoor}`,
+      `CRASHERS ESCAPED IN MANOR ..... ${this.stats.crashersEscaped}`,
+      `FALSE ACCUSATIONS ............. ${this.stats.falseAccusations}`,
+      `FINAL PARTY CONTROL ........... ${Math.ceil(this.partyControl)}%`
     ];
 
     statLines.forEach((line, idx) => {
-      ctx.fillStyle = '#d8c7f0';
-      ctx.font = '700 11px Silkscreen, monospace';
+      ctx.fillStyle = '#f0e6ff';
+      ctx.font = '700 14.5px "Space Mono", monospace';
       ctx.fillText(line, 640, 298 + idx * 32);
     });
 
-    this.drawGMBox(ctx, 455, 515, 370, 54, '#ff8533', '#f4e4bc', null);
-    ctx.fillStyle = '#140824';
-    ctx.font = '700 13px Silkscreen, monospace';
-    ctx.fillText('► PLAY AGAIN [SPACE / CLICK]', 640, 547);
+    // Two Bottom Buttons: Next Stage / Play Again & Title Menu
+    this.drawGMBox(ctx, 360, 515, 265, 52, '#208c5a', '#f4e4bc', null);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 15px "Chakra Petch", monospace';
+    ctx.fillText(
+      hasNextStage ? '► NEXT STAGE [SPACE]' : '► PLAY AGAIN [SPACE]',
+      492,
+      546
+    );
+
+    this.drawGMBox(ctx, 655, 515, 265, 52, '#381a63', '#f4e4bc', null);
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 15px "Chakra Petch", monospace';
+    ctx.fillText('TITLE MENU [ESC]', 787, 546);
 
     ctx.restore();
   }

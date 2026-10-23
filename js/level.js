@@ -1,100 +1,324 @@
 // ============================================================================
-// Come In, Velvet! — Multi-Floor Spooky Mansion Level & Environment Renderer
+// Come In, Velvet! — 3 Hand-Crafted Multi-Floor Levels & Interactive Gimmicks
 // ============================================================================
 
 class MansionLevel {
-  constructor() {
+  constructor(levelIndex = 0) {
     this.width = 1280;
     this.height = 720;
 
-    // Key locations
     this.frontDoor = { x: 248, y: 590 };
     this.queueStart = { x: 185, y: 618 };
     this.windowEntry = { x: 1175, y: 420 };
     this.atticPortal = { x: 1135, y: 230 };
 
-    // Platforms: solidGround cannot be dropped through; oneWay can be jumped up through or dropped down with S/Down
-    this.platforms = [
-      // Ground Floor (Porch + Ballroom)
-      { x: 0, y: 640, w: 1280, h: 80, oneWay: false, type: 'ground' },
-
-      // Step-up platforms between Floor 1 and Floor 2
-      { x: 350, y: 545, w: 115, h: 16, oneWay: true, type: 'wood' },
-      { x: 1085, y: 545, w: 120, h: 16, oneWay: true, type: 'wood' },
-
-      // 2nd Floor (Banquet & Library Balconies)
-      { x: 275, y: 445, w: 355, h: 18, oneWay: true, type: 'balcony' },
-      { x: 665, y: 410, w: 130, h: 16, oneWay: true, type: 'chandelier', bouncy: true },
-      { x: 830, y: 445, w: 390, h: 18, oneWay: true, type: 'balcony' },
-
-      // Step-up platforms between Floor 2 and Floor 3
-      { x: 480, y: 348, w: 110, h: 16, oneWay: true, type: 'wood' },
-      { x: 935, y: 348, w: 110, h: 16, oneWay: true, type: 'wood' },
-
-      // 3rd Floor (Attic & Midnight Belfry)
-      { x: 295, y: 255, w: 310, h: 18, oneWay: true, type: 'attic' },
-      { x: 645, y: 225, w: 200, h: 18, oneWay: true, type: 'belfry', bouncy: true },
-      { x: 885, y: 255, w: 320, h: 18, oneWay: true, type: 'attic' }
-    ];
-
-    // Bouncy Velvet Ottomans on Floor 1 & 2 for fast vertical platforming
-    this.bouncePads = [
-      { x: 385, y: 624, w: 56, h: 16, vyBoost: -650, label: 'Bounce Sofa' },
-      { x: 1120, y: 624, w: 56, h: 16, vyBoost: -650, label: 'Velvet Trampoline' }
-    ];
-
-    // Background stars
     this.stars = Array.from({ length: 42 }, () => ({
       x: Math.random() * 280,
       y: Math.random() * 480,
       r: 1 + Math.random() * 2,
       phase: Math.random() * Math.PI * 2
     }));
+
+    this.loadLevel(levelIndex);
+  }
+
+  loadLevel(levelIndex = 0) {
+    this.levelIndex = levelIndex;
+    this.platforms = [];
+    this.bouncePads = [];
+    this.teleporters = [];
+    this.windZones = [];
+
+    if (levelIndex === 0) {
+      // ======================================================================
+      // LEVEL 1: THE GRAND BALLROOM (Swinging Chandeliers & Bounce Ottomans)
+      // ======================================================================
+      this.theme = {
+        skyTop: '#0f051d',
+        skyMid: '#230d42',
+        wallBg: '#1d0e33',
+        wallBorder: '#4e2a84',
+        carpet: '#9e245a',
+        platFill: '#3b1e63',
+        platBorder: '#8b4fff',
+        platTop: '#b98cff'
+      };
+
+      this.windowEntry = { x: 1175, y: 420 };
+      this.atticPortal = { x: 1135, y: 230 };
+
+      this.platforms = [
+        { x: 0, y: 640, w: 1280, h: 80, oneWay: false, type: 'ground' },
+
+        // Step-up platforms Floor 1 -> 2
+        { x: 350, y: 545, w: 115, h: 16, oneWay: true, type: 'wood' },
+        { x: 1085, y: 545, w: 120, h: 16, oneWay: true, type: 'wood' },
+
+        // Floor 2 Balconies & Swinging Bouncy Chandelier
+        { x: 275, y: 445, w: 335, h: 18, oneWay: true, type: 'balcony' },
+        {
+          x: 660,
+          y: 412,
+          ox: 660,
+          oy: 412,
+          w: 135,
+          h: 16,
+          oneWay: true,
+          type: 'chandelier',
+          bouncy: true,
+          moveRangeX: 42,
+          moveSpeed: 2.0
+        },
+        { x: 845, y: 445, w: 375, h: 18, oneWay: true, type: 'balcony' },
+
+        // Step-up platforms Floor 2 -> 3
+        { x: 480, y: 348, w: 110, h: 16, oneWay: true, type: 'wood' },
+        { x: 935, y: 348, w: 110, h: 16, oneWay: true, type: 'wood' },
+
+        // Floor 3 Attic & Belfry
+        { x: 295, y: 255, w: 310, h: 18, oneWay: true, type: 'attic' },
+        { x: 645, y: 225, w: 200, h: 18, oneWay: true, type: 'belfry', bouncy: true },
+        { x: 885, y: 255, w: 320, h: 18, oneWay: true, type: 'attic' }
+      ];
+
+      this.bouncePads = [
+        { x: 385, y: 624, w: 58, h: 16, vyBoost: -655, label: 'BOUNCE' },
+        { x: 1120, y: 624, w: 58, h: 16, vyBoost: -655, label: 'BOUNCE' }
+      ];
+    } else if (levelIndex === 1) {
+      // ======================================================================
+      // LEVEL 2: HAUNTED ALCHEMY CONSERVATORY (Moving Slabs & Warp Mirrors)
+      // ======================================================================
+      this.theme = {
+        skyTop: '#061717',
+        skyMid: '#0f3630',
+        wallBg: '#102426',
+        wallBorder: '#2fa88a',
+        carpet: '#19735c',
+        platFill: '#193d3b',
+        platBorder: '#3cd688',
+        platTop: '#82f7c1'
+      };
+
+      this.windowEntry = { x: 1175, y: 430 };
+      this.atticPortal = { x: 1140, y: 225 };
+
+      this.platforms = [
+        { x: 0, y: 640, w: 1280, h: 80, oneWay: false, type: 'ground' },
+
+        // Floor 2 Left & Right Alchemy Walkways + Gliding Center Hover-Slab
+        { x: 275, y: 455, w: 260, h: 18, oneWay: true, type: 'balcony' },
+        {
+          x: 640,
+          y: 455,
+          ox: 640,
+          oy: 455,
+          w: 150,
+          h: 16,
+          oneWay: true,
+          type: 'moving',
+          moveRangeX: 95,
+          moveSpeed: 2.3
+        },
+        { x: 935, y: 455, w: 280, h: 18, oneWay: true, type: 'balcony' },
+
+        // Vertical Elevator Hover-Slabs on Left & Right
+        {
+          x: 545,
+          y: 350,
+          ox: 545,
+          oy: 350,
+          w: 95,
+          h: 16,
+          oneWay: true,
+          type: 'moving',
+          moveRangeY: 75,
+          moveSpeed: 2.1
+        },
+        {
+          x: 830,
+          y: 350,
+          ox: 830,
+          oy: 350,
+          w: 95,
+          h: 16,
+          oneWay: true,
+          type: 'moving',
+          moveRangeY: -75,
+          moveSpeed: 2.1
+        },
+
+        // Floor 3 Upper Observatory Decks
+        { x: 285, y: 250, w: 250, h: 18, oneWay: true, type: 'attic' },
+        { x: 645, y: 230, w: 180, h: 18, oneWay: true, type: 'belfry', bouncy: true },
+        { x: 930, y: 250, w: 280, h: 18, oneWay: true, type: 'attic' }
+      ];
+
+      // Bubbling Cauldron Steam Vents (extra high bounce!)
+      this.bouncePads = [
+        { x: 355, y: 624, w: 62, h: 16, vyBoost: -690, label: 'STEAM' },
+        { x: 710, y: 624, w: 64, h: 16, vyBoost: -720, label: 'CAULDRON' },
+        { x: 1065, y: 624, w: 62, h: 16, vyBoost: -690, label: 'STEAM' }
+      ];
+
+      // Haunted Warp Mirrors (Floor 1 East <-> Floor 3 West)
+      this.teleporters = [
+        {
+          id: 'alchemy_warp',
+          a: { x: 1185, y: 612, label: 'WARP A', color: '#3cd688' },
+          b: { x: 335, y: 224, label: 'WARP B', color: '#3cd688' }
+        }
+      ];
+    } else {
+      // ======================================================================
+      // LEVEL 3: CLOCKWORK BELFRY & PHANTOM ROOFTOPS (Wind Streams & Cogs)
+      // ======================================================================
+      this.theme = {
+        skyTop: '#1c0510',
+        skyMid: '#3d0c24',
+        wallBg: '#240d1d',
+        wallBorder: '#d98a3b',
+        carpet: '#b8324f',
+        platFill: '#3d1c2e',
+        platBorder: '#ffcb47',
+        platTop: '#ffe494'
+      };
+
+      this.windowEntry = { x: 1175, y: 415 };
+      this.atticPortal = { x: 1140, y: 220 };
+
+      this.platforms = [
+        { x: 0, y: 640, w: 1280, h: 80, oneWay: false, type: 'ground' },
+
+        // Tier 1 Brass Catwalks
+        { x: 280, y: 495, w: 210, h: 16, oneWay: true, type: 'balcony' },
+        {
+          x: 660,
+          y: 470,
+          ox: 660,
+          oy: 470,
+          w: 150,
+          h: 16,
+          oneWay: true,
+          type: 'moving',
+          moveRangeX: 110,
+          moveSpeed: 2.6
+        },
+        { x: 990, y: 495, w: 220, h: 16, oneWay: true, type: 'balcony' },
+
+        // Tier 2 Oscillating Clockwork Cog Platforms
+        {
+          x: 495,
+          y: 365,
+          ox: 495,
+          oy: 365,
+          w: 130,
+          h: 16,
+          oneWay: true,
+          type: 'chandelier',
+          bouncy: true,
+          moveRangeX: 55,
+          moveRangeY: 35,
+          moveSpeed: 2.2
+        },
+        {
+          x: 845,
+          y: 365,
+          ox: 845,
+          oy: 365,
+          w: 130,
+          h: 16,
+          oneWay: true,
+          type: 'chandelier',
+          bouncy: true,
+          moveRangeX: -55,
+          moveRangeY: -35,
+          moveSpeed: 2.2
+        },
+
+        // Tier 3 High Belfry Rooftop Ledges
+        { x: 285, y: 240, w: 240, h: 18, oneWay: true, type: 'attic' },
+        { x: 635, y: 215, w: 210, h: 18, oneWay: true, type: 'belfry', bouncy: true },
+        { x: 940, y: 240, w: 270, h: 18, oneWay: true, type: 'attic' }
+      ];
+
+      this.bouncePads = [
+        { x: 710, y: 624, w: 68, h: 16, vyBoost: -740, label: 'COG SPRING' }
+      ];
+
+      // Updraft Wind Columns (lift Velvet smoothly up all 3 tiers!)
+      this.windZones = [
+        { x: 355, y: 230, w: 72, h: 410, label: 'UPDRAFT' },
+        { x: 1030, y: 230, w: 72, h: 410, label: 'UPDRAFT' }
+      ];
+
+      // Diagonal Warp Mirrors
+      this.teleporters = [
+        {
+          id: 'belfry_warp',
+          a: { x: 315, y: 612, label: 'ROOF WARP', color: '#ffcb47' },
+          b: { x: 1175, y: 214, label: 'FOYER WARP', color: '#ffcb47' }
+        }
+      ];
+    }
+
+    // Initialize platform delta tracking
+    for (const p of this.platforms) {
+      p.dx = 0;
+      p.dy = 0;
+    }
+  }
+
+  update(dt, animTime) {
+    for (const p of this.platforms) {
+      const prevX = p.x;
+      const prevY = p.y;
+
+      if (p.moveRangeX) {
+        p.x = p.ox + Math.sin(animTime * (p.moveSpeed || 2)) * p.moveRangeX;
+      }
+      if (p.moveRangeY) {
+        p.y = p.oy + Math.cos(animTime * (p.moveSpeed || 2)) * p.moveRangeY;
+      }
+
+      p.dx = p.x - prevX;
+      p.dy = p.y - prevY;
+    }
   }
 
   draw(ctx, animTime, gameProgress, velvet, windowAlertTimer = 0, atticAlertTimer = 0) {
-    // 1. Night Sky & Courtyard Backdrop (Left side)
+    const t = this.theme;
+
+    // 1. Night Sky & Courtyard Backdrop
     const skyGrad = ctx.createLinearGradient(0, 0, 0, this.height);
-    skyGrad.addColorStop(0, '#0f051d');
-    skyGrad.addColorStop(0.6, '#230d42');
-    skyGrad.addColorStop(1, '#120824');
+    skyGrad.addColorStop(0, t.skyTop);
+    skyGrad.addColorStop(0.6, t.skyMid);
+    skyGrad.addColorStop(1, '#090412');
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, this.width, this.height);
 
-    // Twinkling stars outside
     this.stars.forEach(s => {
       const alpha = 0.4 + 0.6 * Math.sin(animTime * 3 + s.phase);
       ctx.fillStyle = `rgba(255, 240, 200, ${alpha})`;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(s.x, s.y, s.r * 1.5, s.r * 1.5);
     });
 
-    // Giant Glowing Blood Moon in Courtyard Sky
+    // Moon in Courtyard Sky (Changes tint per stage!)
     const moonX = 115;
     const moonY = 145;
-    const moonGlow = ctx.createRadialGradient(moonX, moonY, 20, moonX, moonY, 110);
-    moonGlow.addColorStop(0, 'rgba(255, 110, 140, 0.55)');
-    moonGlow.addColorStop(0.5, 'rgba(195, 60, 140, 0.2)');
-    moonGlow.addColorStop(1, 'rgba(195, 60, 140, 0)');
-    ctx.fillStyle = moonGlow;
+    const moonColors = ['#ffccd8', '#b8ffe3', '#ffd8a8'];
+    ctx.fillStyle = moonColors[this.levelIndex] || '#ffccd8';
     ctx.beginPath();
-    ctx.arc(moonX, moonY, 110, 0, Math.PI * 2);
+    ctx.arc(moonX, moonY, 44, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#ffccd8';
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, 46, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Spooky silhouetted hill & iron fence on porch
-    ctx.fillStyle = '#18092c';
+    // Courtyard hill & iron fence
+    ctx.fillStyle = '#120721';
     ctx.beginPath();
     ctx.moveTo(0, 640);
     ctx.quadraticCurveTo(130, 560, 260, 640);
     ctx.fill();
 
-    // Wrought-iron fence posts
     ctx.strokeStyle = '#2d164d';
     ctx.lineWidth = 3;
     for (let fx = 18; fx < 235; fx += 24) {
@@ -104,73 +328,166 @@ class MansionLevel {
       ctx.stroke();
     }
 
-    // 2. Grand Haunted Mansion Cross-Section Interior (x: 250 to 1245)
-    // Outer stone walls & roof
-    ctx.fillStyle = '#1d0e33';
-    ctx.strokeStyle = '#4e2a84';
+    // 2. Grand Mansion Cross-Section Interior (x: 250 to 1245)
+    ctx.fillStyle = t.wallBg;
+    ctx.strokeStyle = t.wallBorder;
     ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.roundRect(250, 95, 995, 548, [18, 18, 0, 0]);
-    ctx.fill();
-    ctx.stroke();
+    ctx.fillRect(250, 95, 995, 548);
+    ctx.strokeRect(250, 95, 995, 548);
 
-    // Mansion Pitched Roof Crest
-    ctx.fillStyle = '#140826';
+    // Pitched Roof Crest
+    ctx.fillStyle = '#10061e';
     ctx.beginPath();
-    ctx.moveTo(230, 100);
-    ctx.lineTo(745, 22);
-    ctx.lineTo(1260, 100);
+    ctx.moveTo(230, 95);
+    ctx.lineTo(745, 20);
+    ctx.lineTo(1260, 95);
     ctx.closePath();
     ctx.fill();
-    ctx.strokeStyle = '#6334a8';
+    ctx.strokeStyle = t.wallBorder;
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Subtle striped Victorian wallpaper inside mansion
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.018)';
+    // Subtle striped wallpaper inside
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
     for (let wx = 270; wx < 1230; wx += 36) {
-      ctx.fillRect(wx, 105, 16, 530);
+      ctx.fillRect(wx, 100, 16, 535);
     }
 
-    // Floor divider trims
-    ctx.strokeStyle = 'rgba(130, 74, 212, 0.25)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(255, 445);
-    ctx.lineTo(1240, 445);
-    ctx.moveTo(255, 255);
-    ctx.lineTo(1240, 255);
-    ctx.stroke();
+    // Stage-Specific Background Architecture
+    if (this.levelIndex === 1) {
+      this.drawAlchemyBackdrop(ctx, animTime);
+    } else if (this.levelIndex === 2) {
+      this.drawClockworkBackdrop(ctx, animTime);
+    }
 
     // 3. Mansion Decor per Floor
     this.drawFloor3Decor(ctx, animTime, gameProgress, atticAlertTimer);
     this.drawFloor2Decor(ctx, animTime, velvet, windowAlertTimer);
     this.drawFloor1Decor(ctx, animTime);
 
-    // 4. Draw Front Door Archway & Gatekeeper Podium (x: 248)
+    // 4. Draw Updraft Wind Streams (Level 3)
+    this.drawWindZones(ctx, animTime);
+
+    // 5. Draw Haunted Warp Mirrors (Levels 2 & 3)
+    this.drawTeleporters(ctx, animTime);
+
+    // 6. Draw Front Door Archway
     this.drawFrontDoor(ctx, animTime);
 
-    // 5. Draw All Platforms & Bounce Pads
+    // 7. Draw All Platforms & Bounce Pads
     this.drawPlatforms(ctx, animTime);
   }
 
+  drawAlchemyBackdrop(ctx, animTime) {
+    // Glowing Greenhouse Arches & Giant Alchemical Vats
+    ctx.strokeStyle = 'rgba(60, 214, 136, 0.16)';
+    ctx.lineWidth = 3;
+    for (let gx = 360; gx <= 1080; gx += 240) {
+      ctx.beginPath();
+      ctx.arc(gx, 320, 75, Math.PI, 0);
+      ctx.lineTo(gx + 75, 635);
+      ctx.moveTo(gx - 75, 320);
+      ctx.lineTo(gx - 75, 635);
+      ctx.stroke();
+    }
+
+    // Rising green alchemy bubbles in background
+    ctx.fillStyle = 'rgba(60, 214, 136, 0.25)';
+    for (let i = 0; i < 10; i++) {
+      const bx = 330 + i * 92;
+      const by = 600 - ((animTime * 45 + i * 55) % 450);
+      ctx.fillRect(bx, by, 6, 6);
+    }
+  }
+
+  drawClockworkBackdrop(ctx, animTime) {
+    // Giant Rotating Clockwork Gears in the Tower Background
+    const drawGear = (gx, gy, r, teeth, speed, col) => {
+      ctx.save();
+      ctx.translate(gx, gy);
+      ctx.rotate(animTime * speed);
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      ctx.arc(0, 0, r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      for (let i = 0; i < teeth; i++) {
+        const a = (i * Math.PI * 2) / teeth;
+        ctx.fillStyle = col;
+        ctx.save();
+        ctx.rotate(a);
+        ctx.fillRect(-5, -r - 10, 10, 12);
+        ctx.restore();
+      }
+      ctx.restore();
+    };
+
+    drawGear(520, 360, 78, 12, 0.4, 'rgba(255, 203, 71, 0.14)');
+    drawGear(665, 290, 56, 8, -0.55, 'rgba(255, 133, 51, 0.15)');
+    drawGear(920, 380, 86, 12, 0.35, 'rgba(255, 203, 71, 0.14)');
+  }
+
+  drawWindZones(ctx, animTime) {
+    for (const wz of this.windZones) {
+      ctx.fillStyle = 'rgba(92, 225, 255, 0.08)';
+      ctx.fillRect(wz.x, wz.y, wz.w, wz.h);
+
+      ctx.strokeStyle = 'rgba(92, 225, 255, 0.35)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(wz.x, wz.y, wz.w, wz.h);
+
+      // Animated rising wind streaks
+      ctx.fillStyle = 'rgba(180, 245, 255, 0.65)';
+      for (let i = 0; i < 6; i++) {
+        const sx = wz.x + 12 + ((i * 19) % (wz.w - 20));
+        const sy = wz.y + wz.h - ((animTime * 220 + i * 68) % wz.h);
+        ctx.fillRect(sx, sy, 3, 22);
+      }
+
+      ctx.fillStyle = '#5ce1ff';
+      ctx.font = '700 11.5px "Chakra Petch", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('▲ WIND ▲', wz.x + wz.w / 2, wz.y + wz.h - 8);
+    }
+  }
+
+  drawTeleporters(ctx, animTime) {
+    const drawMirror = (node, partnerLabel) => {
+      ctx.save();
+      ctx.translate(node.x, node.y);
+      const pulse = Math.sin(animTime * 8) * 2;
+
+      ctx.fillStyle = '#0d051a';
+      ctx.strokeStyle = node.color;
+      ctx.lineWidth = 3;
+      ctx.fillRect(-18, -32, 36, 54);
+      ctx.strokeRect(-18, -32, 36, 54);
+
+      // Swirling portal core
+      ctx.fillStyle = 'rgba(60, 214, 136, 0.28)';
+      ctx.fillRect(-12, -26 + pulse, 24, 42 - pulse * 2);
+
+      ctx.fillStyle = node.color;
+      ctx.font = '700 11.5px "Chakra Petch", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(node.label, 0, -38);
+      ctx.restore();
+    };
+
+    for (const pair of this.teleporters) {
+      drawMirror(pair.a, pair.b.label);
+      drawMirror(pair.b, pair.a.label);
+    }
+  }
+
   drawFloor3Decor(ctx, animTime, gameProgress, atticAlertTimer) {
-    // Center Belfry Midnight Clock (x: 745, y: 162)
+    // Center Belfry Midnight Clock (x: 745, y: 158)
     const cx = 745;
     const cy = 158;
     ctx.save();
     ctx.translate(cx, cy);
 
-    // Clock outer glow
-    const isNearMidnight = gameProgress > 0.85;
-    ctx.fillStyle = isNearMidnight
-      ? `rgba(255, 77, 148, ${0.25 + 0.15 * Math.sin(animTime * 10)})`
-      : 'rgba(255, 209, 92, 0.15)';
-    ctx.beginPath();
-    ctx.arc(0, 0, 44, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Clock Face
     ctx.fillStyle = '#2b144d';
     ctx.strokeStyle = '#ffd15c';
     ctx.lineWidth = 3.5;
@@ -179,7 +496,6 @@ class MansionLevel {
     ctx.fill();
     ctx.stroke();
 
-    // Hour ticks
     for (let i = 0; i < 12; i++) {
       const ang = (i * Math.PI) / 6;
       ctx.strokeStyle = i === 0 ? '#ff4d94' : '#c9b3eb';
@@ -190,12 +506,10 @@ class MansionLevel {
       ctx.stroke();
     }
 
-    // Hands: 9:00 PM (progress 0) to 12:00 AM (progress 1)
     const totalHours = 9 + gameProgress * 3;
     const hourAngle = ((totalHours % 12) / 12) * Math.PI * 2 - Math.PI / 2;
-    const minAngle = ((totalHours * 60) % 60 / 60) * Math.PI * 2 - Math.PI / 2;
+    const minAngle = (((totalHours * 60) % 60) / 60) * Math.PI * 2 - Math.PI / 2;
 
-    // Hour hand
     ctx.strokeStyle = '#ffd15c';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -203,32 +517,15 @@ class MansionLevel {
     ctx.lineTo(Math.cos(hourAngle) * 16, Math.sin(hourAngle) * 16);
     ctx.stroke();
 
-    // Minute hand
     ctx.strokeStyle = '#38f2af';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(Math.cos(minAngle) * 24, Math.sin(minAngle) * 24);
     ctx.stroke();
-
     ctx.restore();
 
-    // Left Attic Potion Shelf (x: 380, y: 195)
-    ctx.fillStyle = '#381e5e';
-    ctx.fillRect(350, 185, 110, 68);
-    ctx.strokeStyle = '#6b3fa8';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(350, 185, 110, 68);
-    // Glowing potion bottles
-    const bottleColors = ['#38f2af', '#ff4d94', '#ffd15c', '#5ce1ff'];
-    bottleColors.forEach((col, idx) => {
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.roundRect(362 + idx * 24, 198, 12, 16, 4);
-      ctx.fill();
-    });
-
-    // Right Attic Escape Vent / Chimney Portal (x: 1135, y: 230)
+    // Right Attic Escape Vent / Chimney Portal
     const ax = this.atticPortal.x;
     const ay = this.atticPortal.y;
     ctx.save();
@@ -246,41 +543,29 @@ class MansionLevel {
     ctx.fill();
     ctx.stroke();
 
-    // Swirl inside vent
-    ctx.strokeStyle = atticAlertTimer > 0 ? 'rgba(255, 59, 92, 0.7)' : 'rgba(133, 71, 255, 0.45)';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, -2, 14, animTime * 4, animTime * 4 + Math.PI * 1.4);
-    ctx.stroke();
-
-    ctx.fillStyle = '#c2aee0';
-    ctx.font = '700 9px Silkscreen, monospace';
+    ctx.fillStyle = '#e2d4f7';
+    ctx.font = '700 11.5px "Chakra Petch", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('ATTIC CHIMNEY', 0, -52);
     ctx.restore();
   }
 
   drawFloor2Decor(ctx, animTime, velvet, windowAlertTimer) {
-    // Spooky Portrait #1 (Left Balcony x: 430, y: 365) — Eyes follow Velvet!
     const drawPortrait = (px, py, frameColor) => {
       ctx.save();
       ctx.translate(px, py);
       ctx.fillStyle = '#160b29';
       ctx.strokeStyle = frameColor;
       ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.roundRect(-26, -34, 52, 64, 6);
-      ctx.fill();
-      ctx.stroke();
+      ctx.fillRect(-26, -34, 52, 64);
+      ctx.strokeRect(-26, -34, 52, 64);
 
-      // Silhouette head in portrait
       ctx.fillStyle = '#331c54';
       ctx.beginPath();
       ctx.arc(0, -8, 12, 0, Math.PI * 2);
       ctx.ellipse(0, 18, 18, 12, 0, Math.PI, 0);
       ctx.fill();
 
-      // Eyes tracking Velvet
       const dx = velvet ? Math.max(-3, Math.min(3, (velvet.x - px) * 0.01)) : 0;
       const dy = velvet ? Math.max(-2, Math.min(2, (velvet.y - py) * 0.01)) : 0;
       ctx.fillStyle = '#ff4d94';
@@ -294,25 +579,7 @@ class MansionLevel {
     drawPortrait(395, 365, '#c48f3f');
     drawPortrait(960, 365, '#8f47ff');
 
-    // Hanging Chandelier chains in center (x: 730, y: 410)
-    ctx.strokeStyle = '#ffd15c';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(730, 243);
-    ctx.lineTo(730, 410);
-    ctx.stroke();
-
-    // Glowing candles on chandelier
-    for (let cx = 680; cx <= 780; cx += 25) {
-      ctx.fillStyle = '#fff5d6';
-      ctx.fillRect(cx - 2, 398, 4, 12);
-      ctx.fillStyle = '#ff9e3b';
-      ctx.beginPath();
-      ctx.arc(cx, 394 + Math.sin(animTime * 12 + cx) * 1.5, 4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Right 2nd Floor Sneak Balcony Window (x: 1175, y: 385)
+    // Right 2nd Floor Sneak Balcony Window
     const wx = this.windowEntry.x;
     const wy = 385;
     ctx.save();
@@ -329,7 +596,6 @@ class MansionLevel {
     ctx.fill();
     ctx.stroke();
 
-    // Window panes
     ctx.strokeStyle = 'rgba(180, 140, 255, 0.35)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -339,15 +605,15 @@ class MansionLevel {
     ctx.lineTo(28, 4);
     ctx.stroke();
 
-    ctx.fillStyle = alertGlow ? '#ff6e89' : '#c2aee0';
-    ctx.font = '700 9px Silkscreen, monospace';
+    ctx.fillStyle = alertGlow ? '#ff6e89' : '#e2d4f7';
+    ctx.font = '700 11.5px "Chakra Petch", monospace';
     ctx.textAlign = 'center';
     ctx.fillText('BALCONY WINDOW', 0, -46);
     ctx.restore();
   }
 
   drawFloor1Decor(ctx, animTime) {
-    // Cozy Haunted Fireplace (x: 845, y: 585)
+    // Cozy Haunted Fireplace (x: 845, y: 590)
     ctx.save();
     ctx.translate(845, 590);
     ctx.fillStyle = '#2d184a';
@@ -356,11 +622,9 @@ class MansionLevel {
     ctx.fillRect(-48, -45, 96, 95);
     ctx.strokeRect(-48, -45, 96, 95);
 
-    // Mantle
     ctx.fillStyle = '#43246e';
     ctx.fillRect(-56, -52, 112, 10);
 
-    // Fire opening
     ctx.fillStyle = '#120721';
     ctx.beginPath();
     ctx.arc(0, 15, 28, Math.PI, 0);
@@ -369,7 +633,6 @@ class MansionLevel {
     ctx.closePath();
     ctx.fill();
 
-    // Flickering flames
     const f1 = Math.sin(animTime * 14) * 5;
     ctx.fillStyle = '#ff6b2b';
     ctx.beginPath();
@@ -385,13 +648,11 @@ class MansionLevel {
     // Spooky Punch Table (x: 585, y: 612)
     ctx.save();
     ctx.translate(585, 612);
-    // Tablecloth
     ctx.fillStyle = '#4e1f6e';
     ctx.fillRect(-45, 0, 90, 28);
     ctx.fillStyle = '#ff8c3b';
     ctx.fillRect(-48, 0, 96, 6);
 
-    // Glowing Green/Pink Punch Bowl
     ctx.fillStyle = '#38f2af';
     ctx.beginPath();
     ctx.arc(0, -6, 15, 0, Math.PI);
@@ -411,7 +672,6 @@ class MansionLevel {
     ctx.fillRect(-44, -5 - beat * 0.5, 88, 40);
     ctx.strokeRect(-44, -5 - beat * 0.5, 88, 40);
 
-    // Speaker cones left & right
     ctx.fillStyle = '#120621';
     ctx.beginPath();
     ctx.arc(-30, 15, 7 + beat * 0.3, 0, Math.PI * 2);
@@ -419,9 +679,9 @@ class MansionLevel {
     ctx.fill();
 
     ctx.fillStyle = '#ffd15c';
-    ctx.font = '700 9px Silkscreen, monospace';
+    ctx.font = '700 11.5px "Chakra Petch", monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('DJ BOOTH', 0, 18);
+    ctx.fillText('DJ BOOTH', 0, 19);
     ctx.restore();
   }
 
@@ -432,7 +692,6 @@ class MansionLevel {
     ctx.save();
     ctx.translate(dx, dy);
 
-    // Grand Arched Doorway sitting on the mansion left wall
     ctx.fillStyle = '#3b1c63';
     ctx.strokeStyle = '#ff9d47';
     ctx.lineWidth = 4;
@@ -444,14 +703,12 @@ class MansionLevel {
     ctx.fill();
     ctx.stroke();
 
-    // Glowing Lantern above the front door
     const glow = 0.6 + 0.4 * Math.sin(animTime * 5);
     ctx.fillStyle = `rgba(255, 168, 68, ${glow})`;
     ctx.beginPath();
     ctx.arc(0, -124, 12, 0, Math.PI * 2);
     ctx.fill();
 
-    // Pumpkin Welcome Mat
     ctx.fillStyle = '#ff7b1c';
     ctx.fillRect(-52, -4, 42, 6);
 
@@ -459,44 +716,50 @@ class MansionLevel {
   }
 
   drawPlatforms(ctx, animTime) {
+    const t = this.theme;
+
     for (const p of this.platforms) {
       if (p.type === 'ground') {
-        // Porch ground (0..250)
         ctx.fillStyle = '#221038';
         ctx.fillRect(0, p.y, 250, p.h);
         ctx.fillStyle = '#472575';
         ctx.fillRect(0, p.y, 250, 6);
 
-        // Mansion Ballroom Velvet Floor (250..1280)
-        ctx.fillStyle = '#260f3d';
+        ctx.fillStyle = '#1b0c2e';
         ctx.fillRect(250, p.y, 1030, p.h);
-        // Plush crimson-violet carpet runner
-        ctx.fillStyle = '#9e245a';
+        ctx.fillStyle = t.carpet;
         ctx.fillRect(250, p.y, 995, 8);
         ctx.fillStyle = '#ffd15c';
         ctx.fillRect(250, p.y + 8, 995, 2);
       } else if (p.type === 'chandelier' || p.type === 'belfry') {
-        // Gold ornate bouncy platform
         ctx.fillStyle = '#5c2c9c';
         ctx.strokeStyle = '#ffd15c';
         ctx.lineWidth = 2.5;
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.strokeRect(p.x, p.y, p.w, p.h);
+      } else if (p.type === 'moving') {
+        // Glowing Alchemical / Clockwork Moving Platform
+        ctx.fillStyle = '#193d3b';
+        ctx.strokeStyle = '#3cd688';
+        ctx.lineWidth = 2.5;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+
+        ctx.fillStyle = '#ffcb47';
+        ctx.fillRect(p.x + 6, p.y + 5, 6, 6);
+        ctx.fillRect(p.x + p.w - 12, p.y + 5, 6, 6);
       } else {
-        // One-way wooden / balcony platform
-        ctx.fillStyle = '#3b1e63';
-        ctx.strokeStyle = '#8b4fff';
+        ctx.fillStyle = t.platFill;
+        ctx.strokeStyle = t.platBorder;
         ctx.lineWidth = 2;
         ctx.fillRect(p.x, p.y, p.w, p.h);
         ctx.strokeRect(p.x, p.y, p.w, p.h);
 
-        // Top highlight strip showing it's a jump-through platform
-        ctx.fillStyle = '#b98cff';
+        ctx.fillStyle = t.platTop;
         ctx.fillRect(p.x + 4, p.y + 2, p.w - 8, 3);
       }
     }
 
-    // Draw Bounce Pads
     for (const bp of this.bouncePads) {
       const pulse = Math.sin(animTime * 8) * 1.5;
       ctx.fillStyle = '#d92b7a';
@@ -505,11 +768,10 @@ class MansionLevel {
       ctx.fillRect(bp.x, bp.y - pulse, bp.w, bp.h + pulse);
       ctx.strokeRect(bp.x, bp.y - pulse, bp.w, bp.h + pulse);
 
-      // Upward chevron arrows
       ctx.fillStyle = '#ffd15c';
-      ctx.font = '700 8px Silkscreen, monospace';
+      ctx.font = '700 11px "Chakra Petch", monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('▲ BOUNCE ▲', bp.x + bp.w / 2, bp.y - 4);
+      ctx.fillText(`▲ ${bp.label} ▲`, bp.x + bp.w / 2, bp.y - 4);
     }
   }
 }
