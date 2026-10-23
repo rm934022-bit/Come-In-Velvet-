@@ -1,0 +1,519 @@
+// ============================================================================
+// Come In, Velvet! — Step-by-Step Animated Interrogation UI & Guestbook
+// ============================================================================
+
+class UIController {
+  constructor(game) {
+    this.game = game;
+
+    // Main Modal Elements
+    this.modal = document.getElementById('question-modal');
+    this.portraitCanvas = document.getElementById('qm-portrait');
+    this.portraitCtx = this.portraitCanvas.getContext('2d');
+    this.velvetCanvas = document.getElementById('qm-velvet-portrait');
+    this.velvetCtx = this.velvetCanvas.getContext('2d');
+
+    this.elVelvetCard = document.getElementById('qm-velvet-card');
+    this.elGuestCard = document.getElementById('qm-guest-card');
+    this.elVelvetMood = document.getElementById('qm-velvet-mood');
+
+    this.elName = document.getElementById('qm-guest-name');
+    this.elCostume = document.getElementById('qm-guest-costume');
+
+    this.elVelvetBubble = document.getElementById('qm-velvet-bubble');
+    this.elVelvetText = document.getElementById('qm-velvet-text');
+    this.elEvidenceProp = document.getElementById('qm-evidence-prop');
+    this.elGuestBubble = document.getElementById('qm-guest-bubble');
+    this.elSpeaker = document.getElementById('qm-speaker-label');
+    this.elSpeech = document.getElementById('qm-speech-text');
+    this.elScanBeam = document.getElementById('qm-scan-beam');
+
+    this.elCluesStrip = document.getElementById('qm-clues-strip');
+    this.elHourLabel = document.getElementById('qm-hour-label');
+    this.elRulesPopover = document.getElementById('qm-rules-popover');
+    this.elRulesContent = document.getElementById('qm-rules-content');
+
+    // Step dots & buttons
+    this.stepDot1 = document.getElementById('step-dot-1');
+    this.stepDot2 = document.getElementById('step-dot-2');
+    this.stepDot3 = document.getElementById('step-dot-3');
+    this.btnNextQuestion = document.getElementById('btn-next-question');
+    this.btnPeekRules = document.getElementById('btn-peek-rules');
+
+    this.btnAdmit = document.getElementById('btn-admit');
+    this.btnReject = document.getElementById('btn-reject');
+    this.btnCloseModal = document.getElementById('qm-close');
+
+    // Guestbook Drawer & Header Buttons
+    this.drawer = document.getElementById('guestbook-drawer');
+    this.gbBody = document.getElementById('gb-body');
+    this.btnGuestbook = document.getElementById('btn-guestbook');
+    this.btnCloseGb = document.getElementById('gb-close');
+    this.btnMute = document.getElementById('btn-mute');
+    this.btnRestart = document.getElementById('btn-restart');
+
+    // Interrogation Step State
+    this.activeGuest = null;
+    this.currentStep = 0; // 0 = greeting, 1 = id, 2 = pass, 3 = inspect
+    this.typewriterFullText = '';
+    this.typewriterIndex = 0;
+    this.typewriterTimer = null;
+    this.guestReaction = 'neutral'; // 'neutral' | 'good' | 'sus'
+
+    this.bindEvents();
+  }
+
+  bindEvents() {
+    this.btnNextQuestion.addEventListener('click', () => this.advanceStep());
+    this.stepDot1.addEventListener('click', () => this.askQuestion('id'));
+    this.stepDot2.addEventListener('click', () => this.askQuestion('pass'));
+    this.stepDot3.addEventListener('click', () => this.askQuestion('inspect'));
+
+    this.btnPeekRules.addEventListener('click', () => {
+      this.elRulesPopover.classList.toggle('hidden');
+      this.btnPeekRules.classList.toggle('open');
+    });
+
+    // Clicking speech bubble finishes typewriter immediately
+    this.elGuestBubble.addEventListener('click', () => {
+      if (this.isTyping()) {
+        this.finishTypewriter();
+      }
+    });
+
+    this.btnAdmit.addEventListener('click', () => this.game.resolveDoorGuest(true));
+    this.btnReject.addEventListener('click', () => this.game.resolveDoorGuest(false));
+    this.btnCloseModal.addEventListener('click', () => this.closeQuestionModal());
+
+    this.btnGuestbook.addEventListener('click', () => this.toggleGuestbook());
+    this.btnCloseGb.addEventListener('click', () => this.drawer.classList.add('hidden'));
+
+    this.btnMute.addEventListener('click', () => {
+      const muted = window.SFX.toggleMute();
+      this.btnMute.innerHTML = muted ? '🔇 Audio: OFF <kbd>M</kbd>' : '🔊 Audio: ON <kbd>M</kbd>';
+    });
+
+    this.btnRestart.addEventListener('click', () => {
+      this.closeQuestionModal();
+      this.game.startNewNight();
+    });
+  }
+
+  openQuestionModal(guest, hourIndex, timeString) {
+    this.activeGuest = guest;
+    this.currentStep = guest.lastStep || 0;
+    this.guestReaction = 'neutral';
+    this.modal.classList.remove('hidden');
+    this.elRulesPopover.classList.add('hidden');
+    this.btnPeekRules.classList.remove('open');
+
+    this.elName.textContent = guest.askedId ? guest.name : 'Unknown Visitor';
+    this.elCostume.textContent = guest.costume;
+    this.elHourLabel.textContent = timeString;
+    this.elVelvetMood.textContent = 'Gatekeeper';
+    this.elScanBeam.classList.add('hidden');
+
+    // Reset Greeting View if no question asked yet
+    this.elVelvetBubble.classList.add('hidden');
+    this.elEvidenceProp.classList.add('hidden');
+    this.elSpeaker.textContent = `${guest.costume} Visitor says:`;
+    this.startTypewriter(guest.greeting);
+
+    this.updateStepDots();
+    this.updateNextButtonLabel();
+    this.renderClues();
+    this.renderMiniRules(hourIndex);
+    this.drawPortraits();
+  }
+
+  closeQuestionModal() {
+    this.stopTypewriter();
+    this.activeGuest = null;
+    this.modal.classList.add('hidden');
+  }
+
+  isModalOpen() {
+    return !this.modal.classList.contains('hidden');
+  }
+
+  isTyping() {
+    return this.typewriterTimer !== null;
+  }
+
+  startTypewriter(text) {
+    this.stopTypewriter();
+    this.typewriterFullText = text;
+    this.typewriterIndex = 0;
+    this.elSpeech.textContent = '';
+
+    // Re-trigger bubble slide animation
+    this.elGuestBubble.style.animation = 'none';
+    void this.elGuestBubble.offsetWidth;
+    this.elGuestBubble.style.animation = '';
+
+    this.elGuestCard.classList.add('talking');
+
+    const stepChar = () => {
+      if (this.typewriterIndex < this.typewriterFullText.length) {
+        this.typewriterIndex += 2;
+        this.elSpeech.textContent = this.typewriterFullText.slice(0, this.typewriterIndex);
+        if (this.typewriterIndex % 6 === 0) {
+          window.SFX.talkBlip(this.guestReaction === 'sus' ? 0.85 : 1.08);
+        }
+        this.typewriterTimer = setTimeout(stepChar, 22);
+      } else {
+        this.finishTypewriter();
+      }
+    };
+    stepChar();
+  }
+
+  finishTypewriter() {
+    this.stopTypewriter();
+    this.elSpeech.textContent = this.typewriterFullText;
+    this.elGuestCard.classList.remove('talking');
+  }
+
+  stopTypewriter() {
+    if (this.typewriterTimer) {
+      clearTimeout(this.typewriterTimer);
+      this.typewriterTimer = null;
+    }
+    this.elGuestCard.classList.remove('talking');
+  }
+
+  // Advances one by one when pressing SPACE or clicking the Next Question button
+  advanceStep() {
+    if (!this.activeGuest) return;
+
+    // If typewriter is currently animating, complete it on first press
+    if (this.isTyping()) {
+      this.finishTypewriter();
+      return;
+    }
+
+    if (!this.activeGuest.askedId) {
+      this.askQuestion('id');
+    } else if (!this.activeGuest.askedPass) {
+      this.askQuestion('pass');
+    } else if (!this.activeGuest.askedInspect) {
+      this.askQuestion('inspect');
+    } else {
+      // Cycle through 1 -> 2 -> 3 if all already asked
+      const nextMap = { 1: 'pass', 2: 'inspect', 3: 'id' };
+      this.askQuestion(nextMap[this.currentStep] || 'id');
+    }
+  }
+
+  triggerCardAnimation(el, className) {
+    el.classList.remove('sus-shake', 'happy-hop');
+    void el.offsetWidth;
+    el.classList.add(className);
+  }
+
+  askQuestion(type) {
+    const g = this.activeGuest;
+    if (!g) return;
+
+    // Animate Velvet asking
+    this.elVelvetBubble.classList.remove('hidden');
+    this.elVelvetBubble.style.animation = 'none';
+    void this.elVelvetBubble.offsetWidth;
+    this.elVelvetBubble.style.animation = '';
+    this.triggerCardAnimation(this.elVelvetCard, 'happy-hop');
+
+    this.elEvidenceProp.classList.remove('hidden', 'prop-ok', 'prop-sus');
+    this.elEvidenceProp.style.animation = 'none';
+    void this.elEvidenceProp.offsetWidth;
+    this.elEvidenceProp.style.animation = '';
+
+    this.elScanBeam.classList.add('hidden');
+
+    if (type === 'id') {
+      this.currentStep = 1;
+      g.lastStep = 1;
+      g.askedId = true;
+
+      this.elVelvetText.textContent = '"Hold it right there! Name and invitation ticket, please!"';
+      this.elName.textContent = g.name;
+      this.elSpeaker.textContent = `${g.name} (${g.costume}) replies:`;
+
+      const validPrefix = g.ticketCode.startsWith('VV-');
+      const lastDigit = parseInt(g.ticketCode.slice(-1), 10);
+      const validEven = !isNaN(lastDigit) && lastDigit % 2 === 0;
+      const ticketOk = validPrefix && validEven;
+
+      const vipMatch = window.GameData.VIP_ROSTER.find(v => v.name === g.name);
+      const hourIdx = this.game.getHourIndex();
+      const costumeOk = hourIdx < 2 || (vipMatch && vipMatch.costume === g.costume);
+      const stepOk = ticketOk && costumeOk;
+
+      g.step1Ok = stepOk;
+      this.guestReaction = stepOk ? 'good' : 'sus';
+      this.elVelvetMood.textContent = stepOk ? 'Ticket Checked ✨' : 'Suspicious ID! 🤨';
+
+      // Show animated Ticket Evidence Card
+      this.elEvidenceProp.classList.add(stepOk ? 'prop-ok' : 'prop-sus');
+      if (!ticketOk) {
+        this.elEvidenceProp.textContent = `🎟️ TICKET: ${g.ticketCode} (⚠️ INVALID CODE!)`;
+      } else if (!costumeOk) {
+        this.elEvidenceProp.textContent = `🎭 ${g.name} should be ${vipMatch.costume}, NOT ${g.costume}!`;
+      } else {
+        this.elEvidenceProp.textContent = `🎟️ TICKET: ${g.ticketCode} • VIP: ${g.name} (✔ VALID)`;
+      }
+
+      this.addClue(
+        'id',
+        stepOk
+          ? `🎟️ ${g.ticketCode} (${g.name})`
+          : !ticketOk
+          ? `🎟️ Fake Ticket: ${g.ticketCode}`
+          : `🎭 Fake ${g.name} (Wrong Costume!)`,
+        stepOk
+      );
+
+      this.triggerCardAnimation(this.elGuestCard, stepOk ? 'happy-hop' : 'sus-shake');
+      this.startTypewriter(g.idResponse);
+    } else if (type === 'pass') {
+      this.currentStep = 2;
+      g.lastStep = 2;
+      g.askedPass = true;
+
+      this.elVelvetText.textContent = '"Lean in close... What is tonight\'s secret password?"';
+      this.elSpeaker.textContent = `${g.askedId ? g.name : g.costume} whispers:`;
+
+      const stepOk = g.knowsPassword;
+      g.step2Ok = stepOk;
+      this.guestReaction = stepOk ? 'good' : 'sus';
+      this.elVelvetMood.textContent = stepOk ? 'Password OK ✨' : 'Wrong Password! 🚨';
+
+      this.elEvidenceProp.classList.add(stepOk ? 'prop-ok' : 'prop-sus');
+      this.elEvidenceProp.textContent = stepOk
+        ? '🔑 PASSWORD: "BLOOD MOON" (✔ CORRECT)'
+        : '🔑 PASSWORD CHECK FAILED! (⚠️ UNINVITED)';
+
+      this.addClue(
+        'pass',
+        stepOk ? '🔑 Knows "BLOOD MOON"' : '🔑 Wrong Password!',
+        stepOk
+      );
+
+      this.triggerCardAnimation(this.elGuestCard, stepOk ? 'happy-hop' : 'sus-shake');
+      this.startTypewriter(g.passwordLine);
+    } else if (type === 'inspect') {
+      this.currentStep = 3;
+      g.lastStep = 3;
+      g.askedInspect = true;
+
+      this.elVelvetText.textContent = '"Hold still! Let me inspect your footwear and outfit..."';
+      this.elSpeaker.textContent = `${g.askedId ? g.name : g.costume} says:`;
+      this.elScanBeam.classList.remove('hidden');
+
+      const stepOk = !g.hasMuddyBoots;
+      g.step3Ok = stepOk;
+      this.guestReaction = stepOk ? 'good' : 'sus';
+      this.elVelvetMood.textContent = stepOk ? 'Shoes Clean ✨' : 'Muddy Boots! 🥾';
+
+      this.elEvidenceProp.classList.add(stepOk ? 'prop-ok' : 'prop-sus');
+      this.elEvidenceProp.textContent = stepOk
+        ? `🔍 SHOES: ${g.shoes} (✔ CLEAN)`
+        : '🔍 MUDDY SWAMP BOOTS DETECTED! (⚠️ FORBIDDEN)';
+
+      this.addClue(
+        'inspect',
+        stepOk ? '🥾 Clean Shoes' : '🥾 Muddy Swamp Boots!',
+        stepOk
+      );
+
+      this.triggerCardAnimation(this.elGuestCard, stepOk ? 'happy-hop' : 'sus-shake');
+      this.startTypewriter(g.inspectResponse);
+    }
+
+    this.updateStepDots();
+    this.updateNextButtonLabel();
+    this.renderClues();
+  }
+
+  updateStepDots() {
+    const g = this.activeGuest;
+    if (!g) return;
+
+    const applyDot = (dot, stepNum, asked, ok) => {
+      dot.className = 'step-dot';
+      if (this.currentStep === stepNum) {
+        dot.classList.add('active');
+      } else if (asked) {
+        dot.classList.add(ok ? 'done-ok' : 'done-sus');
+      }
+    };
+
+    applyDot(this.stepDot1, 1, g.askedId, g.step1Ok);
+    applyDot(this.stepDot2, 2, g.askedPass, g.step2Ok);
+    applyDot(this.stepDot3, 3, g.askedInspect, g.step3Ok);
+  }
+
+  updateNextButtonLabel() {
+    const g = this.activeGuest;
+    if (!g) return;
+
+    this.btnNextQuestion.classList.remove('complete');
+    if (!g.askedId) {
+      this.btnNextQuestion.innerHTML = '💬 Step 1/3: Ask Name &amp; Ticket <kbd>SPACE</kbd>';
+    } else if (!g.askedPass) {
+      this.btnNextQuestion.innerHTML = '💬 Step 2/3: Ask Secret Password <kbd>SPACE</kbd>';
+    } else if (!g.askedInspect) {
+      this.btnNextQuestion.innerHTML = '💬 Step 3/3: Inspect Shoes &amp; Outfit <kbd>SPACE</kbd>';
+    } else {
+      this.btnNextQuestion.classList.add('complete');
+      this.btnNextQuestion.innerHTML = '✔ All 3 Checked! Choose Verdict ➔ <kbd>F</kbd> or <kbd>X</kbd>';
+    }
+  }
+
+  addClue(key, text, isGood) {
+    if (!this.activeGuest) return;
+    const existingIdx = this.activeGuest.cluesFound.findIndex(c => c.key === key);
+    if (existingIdx !== -1) {
+      this.activeGuest.cluesFound[existingIdx] = { key, text, isGood };
+    } else {
+      this.activeGuest.cluesFound.push({ key, text, isGood });
+    }
+  }
+
+  renderClues() {
+    this.elCluesStrip.innerHTML = '';
+    if (!this.activeGuest || this.activeGuest.cluesFound.length === 0) {
+      const span = document.createElement('span');
+      span.className = 'clue-placeholder';
+      span.innerHTML = '🕵️ Press <kbd>SPACE</kbd> (or <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>) to question this visitor step by step!';
+      this.elCluesStrip.appendChild(span);
+      return;
+    }
+
+    for (const c of this.activeGuest.cluesFound) {
+      const pill = document.createElement('span');
+      pill.className = `clue-pill ${c.isGood ? 'good' : 'sus'}`;
+      pill.textContent = `${c.isGood ? '✔' : '⚠️'} ${c.text}`;
+      this.elCluesStrip.appendChild(pill);
+    }
+  }
+
+  renderMiniRules(hourIndex) {
+    const rules = window.GameData.getRulesForHour(hourIndex);
+    let html = '';
+    for (const r of rules) {
+      html += `<div class="rule-item"><strong>${r.title}</strong><br/>${r.desc}</div>`;
+    }
+
+    if (hourIndex >= 2) {
+      html += `<div class="rule-item"><strong>VIP Roster Costumes:</strong><br/>`;
+      html += window.GameData.VIP_ROSTER.map(
+        v => `• <b>${v.name}</b> → ${v.costume}`
+      ).join('<br/>');
+      html += `</div>`;
+    }
+    this.elRulesContent.innerHTML = html;
+  }
+
+  toggleGuestbook() {
+    this.updateGuestbookContent(this.game.getHourIndex());
+    this.drawer.classList.toggle('hidden');
+  }
+
+  updateGuestbookContent(hourIndex) {
+    const rules = window.GameData.getRulesForHour(hourIndex);
+    let html = `<div class="gb-section"><h4>📜 Active Security Rules</h4>`;
+    for (const r of rules) {
+      html += `<p style="margin-bottom:6px;">• <strong>${r.title}:</strong> ${r.desc}</p>`;
+    }
+    html += `</div>`;
+
+    html += `<div class="gb-section"><h4>🎃 Official VIP Guest Roster</h4>`;
+    for (const vip of window.GameData.VIP_ROSTER) {
+      html += `<div class="gb-guest-row"><span>${vip.name}</span><strong style="color:#ffd15c">${vip.costume}</strong></div>`;
+    }
+    html += `</div>`;
+
+    html += `<div class="gb-section"><h4>🦇 Gatekeeper Tips</h4>
+      <p>• Press <kbd>E</kbd> at the Front Door to question the next visitor.</p>
+      <p>• Press <kbd>SPACE</kbd> inside the dialogue to ask each question one by one!</p>
+      <p>• Press <kbd>SHIFT</kbd> to morph into a <b>Bat</b> and <kbd>J</kbd> / <kbd>Click</kbd> to Sonic Swoop &amp; catch fleeing crashers!</p>
+    </div>`;
+
+    this.gbBody.innerHTML = html;
+  }
+
+  drawPortraits() {
+    if (!this.activeGuest) return;
+    const t = this.game.animTime;
+
+    // 1. Draw Animated Velvet Portrait on Left
+    const vCtx = this.velvetCtx;
+    vCtx.clearRect(0, 0, 96, 96);
+    const dummyVelvet = {
+      x: 48,
+      y: 66,
+      vx: 0,
+      facing: 1,
+      isBat: false,
+      swoopTimer: 0
+    };
+    window.GameData.drawVelvetSprite(vCtx, dummyVelvet, t);
+
+    // Draw magnifying glass icon by Velvet during inspection
+    if (this.currentStep === 3) {
+      vCtx.save();
+      vCtx.translate(72, 42 + Math.sin(t * 8) * 4);
+      vCtx.strokeStyle = '#ffd15c';
+      vCtx.lineWidth = 2.5;
+      vCtx.beginPath();
+      vCtx.arc(0, 0, 9, 0, Math.PI * 2);
+      vCtx.moveTo(6, 6);
+      vCtx.lineTo(13, 13);
+      vCtx.stroke();
+      vCtx.restore();
+    }
+
+    // 2. Draw Animated Guest Portrait on Right
+    const gCtx = this.portraitCtx;
+    gCtx.clearRect(0, 0, 106, 106);
+
+    const portraitGuest = Object.assign({}, this.activeGuest, {
+      facing: -1,
+      vx: this.isTyping() ? 25 : 0
+    });
+    window.GameData.drawGuestSprite(gCtx, 53, 66, portraitGuest, t, 1.55);
+
+    // Step-Specific Visual Overlays on Guest Portrait
+    if (this.currentStep === 1) {
+      // Floating mini Ticket Stub held up by the guest
+      const ty = 44 + Math.sin(t * 7) * 3;
+      gCtx.fillStyle = this.activeGuest.step1Ok ? '#38f2af' : '#ff4d6d';
+      gCtx.strokeStyle = '#1b0b2e';
+      gCtx.lineWidth = 1.5;
+      gCtx.beginPath();
+      gCtx.roundRect(10, ty, 30, 16, 3);
+      gCtx.fill();
+      gCtx.stroke();
+    }
+
+    // Animated Nervous Sweat Drops if Guest gave a suspicious answer!
+    if (this.guestReaction === 'sus') {
+      const dropY = (t * 28) % 18;
+      gCtx.fillStyle = '#5ce1ff';
+      gCtx.beginPath();
+      gCtx.arc(24, 24 + dropY, 3.2, 0, Math.PI * 2);
+      gCtx.arc(82, 28 + ((dropY + 9) % 18), 2.8, 0, Math.PI * 2);
+      gCtx.fill();
+    } else if (this.guestReaction === 'good') {
+      // Cute sparkle stars when check passes
+      const pulse = 0.6 + 0.4 * Math.sin(t * 10);
+      gCtx.fillStyle = `rgba(56, 242, 175, ${pulse})`;
+      gCtx.beginPath();
+      gCtx.arc(20, 24, 3.5, 0, Math.PI * 2);
+      gCtx.arc(86, 22, 3, 0, Math.PI * 2);
+      gCtx.fill();
+    }
+  }
+}
+
+window.UIController = UIController;
