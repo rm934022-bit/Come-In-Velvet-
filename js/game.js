@@ -666,7 +666,11 @@ class ComeInVelvetGame {
         e.preventDefault();
         const ok = this.velvet.toggleBatForm(this.particles);
         if (!ok) {
-          this.addFloatingText('LOW BAT MP! GRAB CANDY!', this.velvet.x, this.velvet.y - 30, '#ff8533');
+          const msg =
+            this.velvet.batCooldown > 0
+              ? `BAT COOLDOWN (${this.velvet.batCooldown.toFixed(1)}s)!`
+              : 'NEED 30% BAT MP! GRAB CANDY!';
+          this.addFloatingText(msg, this.velvet.x, this.velvet.y - 30, '#ff8533');
         }
       }
 
@@ -1226,11 +1230,36 @@ class ComeInVelvetGame {
     this.drawSegmentedBar(ctx, 28, 39, 230, 18, this.partyControl, ctrlColor, 10);
 
     // 2. Bat Magic Box
-    this.drawGMBox(ctx, 283, 12, 225, 58, '#140b24', this.velvet.isBat ? '#ff5ca8' : '#f4e4bc');
-    ctx.fillStyle = '#f0d4ff';
-    ctx.font = '700 13px "Chakra Petch", monospace';
-    ctx.fillText(this.velvet.isBat ? 'BAT FORM: ACTIVE' : 'BAT MP [SHIFT]:', 295, 31);
-    this.drawSegmentedBar(ctx, 295, 39, 200, 18, this.velvet.batEnergy, '#a84cff', 8);
+    const batReady = this.velvet.batCooldown <= 0 && this.velvet.batEnergy >= 30;
+    this.drawGMBox(
+      ctx,
+      283,
+      12,
+      225,
+      58,
+      '#140b24',
+      this.velvet.isBat ? '#ff5ca8' : batReady ? '#f4e4bc' : '#ff8533'
+    );
+    ctx.fillStyle = this.velvet.batCooldown > 0 ? '#ff964f' : '#f0d4ff';
+    ctx.font = '700 12.5px "Chakra Petch", monospace';
+    const batLabel = this.velvet.isBat
+      ? 'BAT FORM: ACTIVE'
+      : this.velvet.batCooldown > 0
+        ? `BAT CD: ${this.velvet.batCooldown.toFixed(1)}s`
+        : this.velvet.batEnergy < 30
+          ? 'BAT MP (MIN 30%):'
+          : 'BAT MP [SHIFT]:';
+    ctx.fillText(batLabel, 295, 31);
+    this.drawSegmentedBar(
+      ctx,
+      295,
+      39,
+      200,
+      18,
+      this.velvet.batEnergy,
+      this.velvet.isBat ? '#ff5ca8' : batReady ? '#a84cff' : '#6c4b8a',
+      8
+    );
 
     // 3. Midnight Clock & Stage Box
     const lvlMeta = this.getLevelMeta();

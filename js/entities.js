@@ -20,16 +20,27 @@ class VelvetPlayer {
     this.isBat = false;
     this.batEnergy = 100;
     this.maxBatEnergy = 100;
+    this.batCooldown = 0;
+    this.batRegenDelay = 0;
     this.swoopTimer = 0;
     this.swoopCooldown = 0;
     this.teleportCooldown = 0;
   }
 
   toggleBatForm(particles) {
-    if (!this.isBat && this.batEnergy < 15) {
-      return false;
+    if (!this.isBat) {
+      if (this.batCooldown > 0 || this.batEnergy < 30) {
+        return false;
+      }
+      // Initial transformation magic cost
+      this.batEnergy = Math.max(0, this.batEnergy - 10);
+      this.isBat = true;
+    } else {
+      this.isBat = false;
+      this.batCooldown = 1.6;
+      this.batRegenDelay = 1.5;
     }
-    this.isBat = !this.isBat;
+
     window.SFX.batTransform(this.isBat);
 
     // Burst of purple bat smoke particles
@@ -53,7 +64,10 @@ class VelvetPlayer {
   triggerSwoop(particles) {
     if (this.swoopCooldown > 0) return;
     this.swoopTimer = 0.24;
-    this.swoopCooldown = 0.42;
+    this.swoopCooldown = 0.55;
+    if (this.isBat) {
+      this.batEnergy = Math.max(0, this.batEnergy - 6);
+    }
     this.vx = this.facing * (this.isBat ? 560 : 470);
     if (!this.isBat && !this.onGround) {
       this.vy = Math.min(this.vy, -80);
@@ -78,6 +92,8 @@ class VelvetPlayer {
     if (this.dropThroughTimer > 0) this.dropThroughTimer -= dt;
     if (this.swoopTimer > 0) this.swoopTimer -= dt;
     if (this.swoopCooldown > 0) this.swoopCooldown -= dt;
+    if (this.batCooldown > 0) this.batCooldown = Math.max(0, this.batCooldown - dt);
+    if (this.batRegenDelay > 0) this.batRegenDelay = Math.max(0, this.batRegenDelay - dt);
 
     const moveDirX = (input.right ? 1 : 0) - (input.left ? 1 : 0);
     const moveDirY = (input.down ? 1 : 0) - (input.up ? 1 : 0);
@@ -90,10 +106,13 @@ class VelvetPlayer {
       // ======================================================================
       // BAT FLIGHT PHYSICS (8-Directional Agile Flight)
       // ======================================================================
-      this.batEnergy -= 18 * dt;
+      this.batEnergy -= 22 * dt;
       if (this.batEnergy <= 0) {
         this.batEnergy = 0;
         this.toggleBatForm(particles);
+        // Longer exhaustion cooldown if player completely drains Bat MP
+        this.batCooldown = 3.2;
+        this.batRegenDelay = 2.4;
       }
 
       const flySpeed = this.swoopTimer > 0 ? 540 : 340;
@@ -127,9 +146,11 @@ class VelvetPlayer {
     }
 
     // ========================================================================
-    // STANDARD PLATFORMER PHYSICS
+    // STANDARD PLATFORMER PHYSICS (Slow Passive Bat MP Refill)
     // ========================================================================
-    this.batEnergy = Math.min(this.maxBatEnergy, this.batEnergy + 13 * dt);
+    if (this.batRegenDelay <= 0) {
+      this.batEnergy = Math.min(this.maxBatEnergy, this.batEnergy + 4.5 * dt);
+    }
 
     const runSpeed = this.swoopTimer > 0 ? 460 : 285;
     if (this.swoopTimer <= 0) {
