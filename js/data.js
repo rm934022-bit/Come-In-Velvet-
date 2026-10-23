@@ -34,25 +34,34 @@ const ITEMS_CLEAN = [
 const LEVEL_META = [
   {
     id: 0,
+    name: 'The Grand Ballroom',
     shortName: 'LVL 1: GRAND BALLROOM',
     title: 'STAGE 1 -- THE GRAND BALLROOM',
     subtitle: 'Swinging Chandeliers & Bounce Ottomans',
+    gimmickDesc: 'Use Bounce Ottomans and the swinging chandelier to reach upper floors.',
+    rule10pm: 'CHECK TICKET CODES: MUST START WITH "VV-" AND END IN AN EVEN DIGIT!',
     password: 'BLOOD MOON',
     desc: 'Classic 3-floor manor reception with bouncy chandeliers and balcony window sneaks.'
   },
   {
     id: 1,
+    name: 'Haunted Alchemy Wing',
     shortName: 'LVL 2: ALCHEMY WING',
     title: 'STAGE 2 -- HAUNTED ALCHEMY CONSERVATORY',
     subtitle: 'Moving Platforms, Warp Mirrors & Steam Vents',
+    gimmickDesc: 'Ride gliding hover-slabs, steam vents, and teleport through Warp Mirrors!',
+    rule10pm: 'STRICT TICKET & VIP CHECK: VERIFY "VV-" EVEN TICKETS & OUTFITS!',
     password: 'WITCHING HOUR',
     desc: 'Gothic greenhouse & lab featuring gliding platforms, teleportation mirrors, and cauldron vents!'
   },
   {
     id: 2,
+    name: 'Clockwork Belfry',
     shortName: 'LVL 3: CLOCKWORK BELFRY',
     title: 'STAGE 3 -- CLOCKWORK BELFRY ROOFTOPS',
     subtitle: 'Updraft Wind Streams, Rotating Cogs & Twin Portals',
+    gimmickDesc: 'Soar up Wind Updraft columns, hop across brass cogs, and guard the roof!',
+    rule10pm: 'HIGH ALERT: WATCH FOR COUNTERFEIT TICKETS & ROOFTOP BREACHES!',
     password: 'NIGHTSHADE',
     desc: 'High-altitude clocktower featuring vertical wind updrafts, moving brass cogs, and rooftop crashers!'
   }

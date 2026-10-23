@@ -350,10 +350,15 @@ class GuestEntity {
 
     // AI timers for party / fleeing
     this.aiTimer = 0;
-    this.escapeTimer = 20; // Seconds before a fleeing crasher escapes out the attic chimney
-    this.maxEscapeTimer = 20;
+    this.escapeTimer = 16; // Faster escape timer!
+    this.maxEscapeTimer = 16;
     this.targetX = 650;
     this.dropTimer = 0;
+    this.jukeCooldown = 0;
+    this.jukeBoostTimer = 0;
+    this.portalCooldown = 0;
+    this.spawnGraceTimer = initialState === 'fleeing' ? 0.95 : 0.4;
+    this.jumpsLeft = 2;
     this.candyDropTimer = 6 + Math.random() * 6;
     this.calloutText = '';
     this.calloutTimer = 0;
@@ -364,9 +369,13 @@ class GuestEntity {
     this.calloutTimer = duration;
   }
 
-  update(dt, level, queueIndex, velvet, onCrasherEscape, onSpawnCandy) {
+  update(dt, level, queueIndex, velvet, onCrasherEscape, onSpawnCandy, diff = null) {
     if (this.calloutTimer > 0) this.calloutTimer -= dt;
     if (this.dropTimer > 0) this.dropTimer -= dt;
+    if (this.jukeCooldown > 0) this.jukeCooldown -= dt;
+    if (this.jukeBoostTimer > 0) this.jukeBoostTimer -= dt;
+    if (this.portalCooldown > 0) this.portalCooldown -= dt;
+    if (this.spawnGraceTimer > 0) this.spawnGraceTimer -= dt;
 
     if (this.state === 'queue') {
       // Line up neatly outside the front door
@@ -420,7 +429,7 @@ class GuestEntity {
 
     if (this.state === 'fleeing' || this.state === 'sneaking') {
       // ======================================================================
-      // UNINVITED GATECRASHER PLATFORMING & ESCAPE AI
+      // DIFFICULTY-SCALED GATECRASHER PLATFORMING, JUKE & ESCAPE AI
       // ======================================================================
       this.escapeTimer -= dt;
       if (this.escapeTimer <= 0) {
@@ -428,37 +437,128 @@ class GuestEntity {
         return;
       }
 
+      const tier = diff && typeof diff.tier === 'number' ? diff.tier : 1;
+      const baseSpd = (diff && diff.enemyBaseSpeed) || 235;
+      const panicSpd = (diff && diff.enemyPanicSpeed) || 280;
+      const jukeSpd = (diff && diff.enemyJukeSpeed) || 360;
+      const canJuke = diff ? !!diff.canJuke : true;
+      const maxJumps = (diff && diff.maxJumps) || 1;
+      const canUsePortals = diff ? !!diff.canUsePortals : true;
+      const jukeCdBase = (diff && diff.jukeCooldown) || 3.0;
+
+      const distToVelvet = Math.hypot(velvet.x - this.x, velvet.y - this.y);
+      const horizDist = Math.abs(velvet.x - this.x);
+      const vertDist = Math.abs(velvet.y - this.y);
+
+      // Evasive Juke Dash (Only active on STANDARD and NIGHTMARE!)
+      if (
+        canJuke &&
+        distToVelvet < (tier >= 2 ? 150 : 120) &&
+        this.jukeCooldown <= 0 &&
+        (velvet.swoopTimer > 0 || velvet.isBat || distToVelvet < 95)
+      ) {
+        this.jukeCooldown = jukeCdBase + Math.random() * 0.8;
+        this.jukeBoostTimer = tier >= 2 ? 0.36 : 0.25;
+        let jukeDir = this.x < velvet.x ? -1 : 1;
+        if (this.x < 360) jukeDir = 1;
+        if (this.x > 1130) jukeDir = -1;
+        this.targetX = Math.max(300, Math.min(1195, this.x + jukeDir * 320));
+        this.facing = jukeDir;
+
+        if (tier >= 2 && velvet.y < this.y - 15 && this.y < 560 && Math.random() < 0.65) {
+          this.dropTimer = 0.28;
+          this.vy = Math.max(this.vy, 240);
+          this.onGround = false;
+        } else if (this.onGround || this.jumpsLeft > 0) {
+          this.vy = tier >= 2 ? -590 : -555;
+          this.onGround = false;
+          this.jumpsLeft = Math.max(0, this.jumpsLeft - 1);
+        }
+      }
+
       this.aiTimer -= dt;
       if (this.aiTimer <= 0) {
-        this.aiTimer = 0.65 + Math.random() * 0.7;
+        // Reaction speed scales with difficulty (Relaxed: ~0.75s, Standard: ~0.45s, Nightmare: ~0.24s)
+        this.aiTimer =
+          tier === 0
+            ? 0.65 + Math.random() * 0.45
+            : tier === 1
+              ? 0.38 + Math.random() * 0.32
+              : 0.20 + Math.random() * 0.22;
 
-        // Evade Velvet horizontally if she gets close, otherwise head toward upper floors / attic
-        const distToVelvet = Math.hypot(velvet.x - this.x, velvet.y - this.y);
-        if (distToVelvet < 180) {
-          const awayDir = this.x < velvet.x ? -1 : 1;
-          this.targetX = Math.max(310, Math.min(1190, this.x + awayDir * 260));
-          // Jump to evade!
-          if (this.onGround && Math.random() < 0.75) {
-            this.vy = -540;
-            this.onGround = false;
+        if (distToVelvet < (tier === 0 ? 185 : 250)) {
+          let awayDir = this.x < velvet.x ? -1 : 1;
+          if (this.x < 350 && awayDir < 0) awayDir = 1;
+          if (this.x > 1140 && awayDir > 0) awayDir = -1;
+          this.targetX = Math.max(305, Math.min(1195, this.x + awayDir * 280));
+
+          if (vertDist < 75 && horizDist < 210) {
+            if (tier >= 1 && velvet.y <= this.y && this.y < 550 && Math.random() < (tier >= 2 ? 0.45 : 0.25)) {
+              this.dropTimer = 0.25;
+              this.onGround = false;
+            } else if (this.onGround && Math.random() < (tier === 0 ? 0.6 : 0.9)) {
+              this.vy = tier === 0 ? -540 : -585;
+              this.onGround = false;
+              this.jumpsLeft = Math.max(0, maxJumps - 1);
+            } else if (maxJumps > 1 && this.jumpsLeft > 0 && this.vy > -120 && Math.random() < 0.75) {
+              this.vy = -545;
+              this.jumpsLeft--;
+            }
           }
         } else {
-          // Pick a platform target across the mansion
-          this.targetX = 330 + Math.random() * 850;
-          if (this.onGround && this.y > 280 && Math.random() < 0.65) {
-            this.vy = -555;
+          if (Math.abs(this.targetX - this.x) < 60 || Math.random() < 0.35) {
+            this.targetX = 320 + Math.random() * 860;
+          }
+          if (this.onGround && this.y > 240 && Math.random() < (tier === 0 ? 0.55 : 0.72)) {
+            this.vy = tier === 0 ? -545 : -580;
             this.onGround = false;
+            this.jumpsLeft = Math.max(0, maxJumps - 1);
+          } else if (maxJumps > 1 && !this.onGround && this.jumpsLeft > 0 && this.vy > 40 && this.y > 320 && Math.random() < 0.55) {
+            this.vy = -535;
+            this.jumpsLeft--;
           }
         }
       }
 
-      const speed = 205;
+      let speed = distToVelvet < 240 ? panicSpd : baseSpd;
+      if (this.spawnGraceTimer > 0) speed = Math.max(speed, panicSpd + 35);
+      if (this.jukeBoostTimer > 0) speed = jukeSpd;
+
       const dx = this.targetX - this.x;
-      if (Math.abs(dx) > 12) {
+      if (Math.abs(dx) > 10) {
         this.vx = Math.sign(dx) * speed;
         this.facing = Math.sign(dx);
       } else {
-        this.targetX = 330 + Math.random() * 850;
+        this.targetX = 320 + Math.random() * 860;
+      }
+
+      // Stage Updraft Wind Streams boost fleeing crashers upward too!
+      if (level.windZones) {
+        for (const wz of level.windZones) {
+          if (this.x >= wz.x && this.x <= wz.x + wz.w && this.y >= wz.y && this.y <= wz.y + wz.h) {
+            this.vy -= 1750 * dt;
+            if (this.vy < -430) this.vy = -430;
+          }
+        }
+      }
+
+      // Stage Warp Mirrors let crashers teleport away when fleeing (Standard/Nightmare)!
+      if (canUsePortals && level.teleporters && this.portalCooldown <= 0 && distToVelvet < 240) {
+        for (const pair of level.teleporters) {
+          if (Math.hypot(this.x - pair.a.x, this.y - pair.a.y) < 32) {
+            this.x = pair.b.x;
+            this.y = pair.b.y;
+            this.vy = -260;
+            this.portalCooldown = 3.5;
+            break;
+          } else if (Math.hypot(this.x - pair.b.x, this.y - pair.b.y) < 32) {
+            this.x = pair.a.x;
+            this.y = pair.a.y;
+            this.vy = -260;
+            this.portalCooldown = 3.5;
+            break;
+          }
+        }
       }
 
       // Gravity & Platform Collisions for Fleeing Crasher
@@ -473,11 +573,19 @@ class GuestEntity {
       // Stay inside the mansion walls (285..1210)
       if (this.x < 285) {
         this.x = 285;
-        this.targetX = 950;
+        this.targetX = 980;
+        if (this.onGround && tier >= 1) {
+          this.vy = -575;
+          this.onGround = false;
+        }
       }
       if (this.x > 1210) {
         this.x = 1210;
-        this.targetX = 420;
+        this.targetX = 380;
+        if (this.onGround && tier >= 1) {
+          this.vy = -575;
+          this.onGround = false;
+        }
       }
 
       // Check Bounce Pads for Crashers too!
@@ -490,18 +598,22 @@ class GuestEntity {
           prevBottom <= bp.y + 24
         ) {
           this.y = bp.y - 22;
-          this.vy = bp.vyBoost * 0.92;
+          this.vy = bp.vyBoost * 0.96;
           this.onGround = false;
+          this.jumpsLeft = Math.max(0, maxJumps - 1);
         }
       }
 
       this.onGround = false;
       for (const p of level.platforms) {
+        if (p.oneWay && this.dropTimer > 0) continue;
         if (this.x < p.x - 8 || this.x > p.x + p.w + 8) continue;
-        if (this.vy >= 0 && prevBottom <= p.y + 14 && newBottom >= p.y) {
+        if (this.vy >= 0 && prevBottom <= p.y + 18 && newBottom >= p.y) {
           this.y = p.y - 22;
-          this.vy = p.bouncy && this.vy > 200 ? -480 : 0;
+          if (p.dx) this.x += p.dx;
+          this.vy = p.bouncy && this.vy > 180 ? -520 : 0;
           this.onGround = this.vy === 0;
+          if (this.onGround) this.jumpsLeft = maxJumps;
           break;
         }
       }

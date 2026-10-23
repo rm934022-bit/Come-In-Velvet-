@@ -24,9 +24,63 @@ class ComeInVelvetGame {
     // Difficulty settings: 0 = RELAXED, 1 = STANDARD, 2 = NIGHTMARE
     this.difficultyIndex = 1;
     this.difficulties = [
-      { name: 'RELAXED', duration: 150, drainMult: 0.7, spawnMult: 1.25, desc: 'Slower clock & gentler party control drain.' },
-      { name: 'STANDARD', duration: 165, drainMult: 1.0, spawnMult: 1.0, desc: 'The classic 9:00 PM to 12:00 AM gatekeeper shift.' },
-      { name: 'NIGHTMARE', duration: 180, drainMult: 1.4, spawnMult: 0.78, desc: 'Fast gatecrashers, strict patience & chaotic rush!' }
+      {
+        tier: 0,
+        name: 'RELAXED',
+        duration: 150,
+        drainMult: 0.7,
+        spawnMult: 1.25,
+        enemyBaseSpeed: 195,
+        enemyPanicSpeed: 225,
+        enemyJukeSpeed: 260,
+        jukeCooldown: 99,
+        canJuke: false,
+        maxJumps: 1,
+        canUsePortals: false,
+        doorGrace: 0.25,
+        escapeTime: 22,
+        catchRadius: 58,
+        passiveBatCatch: true,
+        desc: 'Slow, easy-to-catch gatecrashers & gentler party control drain.'
+      },
+      {
+        tier: 1,
+        name: 'STANDARD',
+        duration: 165,
+        drainMult: 1.0,
+        spawnMult: 1.0,
+        enemyBaseSpeed: 235,
+        enemyPanicSpeed: 280,
+        enemyJukeSpeed: 360,
+        jukeCooldown: 3.0,
+        canJuke: true,
+        maxJumps: 1,
+        canUsePortals: true,
+        doorGrace: 0.65,
+        escapeTime: 18,
+        catchRadius: 49,
+        passiveBatCatch: false,
+        desc: 'Balanced gatecrashers whose speed & reflexes ramp up with difficulty.'
+      },
+      {
+        tier: 2,
+        name: 'NIGHTMARE',
+        duration: 180,
+        drainMult: 1.4,
+        spawnMult: 0.78,
+        enemyBaseSpeed: 280,
+        enemyPanicSpeed: 335,
+        enemyJukeSpeed: 435,
+        jukeCooldown: 1.7,
+        canJuke: true,
+        maxJumps: 2,
+        canUsePortals: true,
+        doorGrace: 1.05,
+        escapeTime: 15,
+        catchRadius: 42,
+        passiveBatCatch: false,
+        desc: 'Hyper-agile crashers with double-jumps, evasive jukes & fast sprints!'
+      }
     ];
 
     this.animTime = 0;
@@ -235,6 +289,7 @@ class ComeInVelvetGame {
     const activeCrashers = this.getActiveCrashers();
     if (activeCrashers.length >= 3) return;
 
+    const diff = this.getDifficulty();
     const hourIdx = this.getHourIndex();
     const profile = window.GameData.generateDoorGuest(hourIdx, this.currentLevelIndex);
     profile.isInvited = false;
@@ -244,6 +299,9 @@ class ComeInVelvetGame {
     const spawnY = fromAttic ? this.level.atticPortal.y : this.level.windowEntry.y;
 
     const crasher = new window.Entities.GuestEntity(profile, spawnX, spawnY, 'sneaking');
+    crasher.escapeTimer = diff.escapeTime;
+    crasher.maxEscapeTimer = diff.escapeTime;
+    crasher.jumpsLeft = diff.maxJumps;
     crasher.say(fromAttic ? 'Hehe! Down the chimney!' : 'Sneaking in the window!', 3.2);
     this.guests.push(crasher);
 
@@ -289,6 +347,7 @@ class ComeInVelvetGame {
     const guest = this.ui.activeGuest;
     if (!guest) return;
     this.ui.closeQuestionModal();
+    const diff = this.getDifficulty();
 
     if (admitVerdict) {
       if (guest.isInvited) {
@@ -308,9 +367,15 @@ class ComeInVelvetGame {
         this.spawnCandy(guest.x + 35, guest.y - 10);
       } else {
         guest.state = 'fleeing';
-        guest.x = 320;
-        guest.y = 618;
-        guest.vy = -420;
+        guest.x = 335;
+        guest.y = 612;
+        guest.vy = diff.tier === 0 ? -450 : -585;
+        guest.targetX = 890;
+        guest.escapeTimer = diff.escapeTime;
+        guest.maxEscapeTimer = diff.escapeTime;
+        guest.jumpsLeft = diff.maxJumps;
+        guest.spawnGraceTimer = diff.doorGrace;
+        guest.jukeBoostTimer = diff.canJuke ? 0.45 : 0;
         guest.say('Bahaha! Fooled you, Velvet!', 3.4);
 
         this.stats.slippedThroughDoor++;
@@ -324,11 +389,16 @@ class ComeInVelvetGame {
     } else {
       if (!guest.isInvited) {
         guest.state = 'fleeing';
-        guest.x = 315;
-        guest.y = 618;
-        guest.vy = -520;
-        guest.targetX = 820;
-        guest.say('Ack! Spotted! Run for it!', 3.2);
+        guest.x = 335;
+        guest.y = 612;
+        guest.vy = diff.tier === 0 ? -470 : -605;
+        guest.targetX = 920;
+        guest.escapeTimer = diff.escapeTime;
+        guest.maxEscapeTimer = diff.escapeTime;
+        guest.jumpsLeft = diff.maxJumps;
+        guest.spawnGraceTimer = diff.doorGrace;
+        guest.jukeBoostTimer = diff.canJuke ? 0.45 : 0;
+        guest.say('Ack! Spotted! Catch me if you can!', 3.2);
 
         const pts = 100 * this.combo;
         this.score += pts;
@@ -351,11 +421,13 @@ class ComeInVelvetGame {
 
   tryCatchCrashers() {
     let caughtAny = false;
-    const catchRange = this.velvet.isBat || this.velvet.swoopTimer > 0 ? 58 : 48;
+    const diff = this.getDifficulty();
+    const catchRange = diff.catchRadius + (this.velvet.isBat ? 4 : 0);
 
     for (let i = this.guests.length - 1; i >= 0; i--) {
       const g = this.guests[i];
       if (g.state !== 'fleeing' && g.state !== 'sneaking') continue;
+      if (g.spawnGraceTimer && g.spawnGraceTimer > 0) continue;
 
       const dist = Math.hypot(this.velvet.x - g.x, this.velvet.y - g.y);
       if (dist <= catchRange) {
@@ -835,9 +907,10 @@ class ComeInVelvetGame {
       this.ui.updateGuestbookContent(newHourIdx, this.currentLevelIndex);
 
       if (newHourIdx === 1) {
+        const rule10 = this.getLevelMeta().rule10pm || 'CHECK TICKET CODES: MUST BE VV- + EVEN DIGIT!';
         this.showBanner(
           '10:00 PM -- SECURITY LEVEL 2',
-          this.getLevelMeta().rule10pm.toUpperCase(),
+          rule10.toUpperCase(),
           5.0
         );
       } else if (newHourIdx === 2) {
@@ -875,7 +948,7 @@ class ComeInVelvetGame {
       this.ui.drawPortraits();
     }
 
-    if (this.velvet.swoopTimer > 0 || this.velvet.isBat) {
+    if (this.velvet.swoopTimer > 0 || (diff.passiveBatCatch && this.velvet.isBat)) {
       this.tryCatchCrashers();
     }
 
@@ -890,7 +963,8 @@ class ComeInVelvetGame {
         qIdx,
         this.velvet,
         escapedCrasher => this.handleCrasherEscape(escapedCrasher),
-        (cx, cy) => this.spawnCandy(cx, cy)
+        (cx, cy) => this.spawnCandy(cx, cy),
+        diff
       );
 
       if (g.state === 'queue' && g.patience <= 0) {
@@ -902,8 +976,14 @@ class ComeInVelvetGame {
           this.addFloatingText('GUEST LEFT ANNOYED (-5%)', 200, 560, '#ff8533');
         } else {
           g.state = 'fleeing';
-          g.x = 310;
-          g.vy = -450;
+          g.x = 335;
+          g.vy = diff.tier === 0 ? -450 : -560;
+          g.targetX = 900;
+          g.escapeTimer = diff.escapeTime;
+          g.maxEscapeTimer = diff.escapeTime;
+          g.jumpsLeft = diff.maxJumps;
+          g.spawnGraceTimer = diff.doorGrace;
+          g.jukeBoostTimer = diff.canJuke ? 0.4 : 0;
           g.say('Tired of waiting! Crashing in!', 3.0);
           window.SFX.alarmChase();
           this.addFloatingText('! CRASHER BARGED IN !', 290, 555, '#e83b55');
@@ -1833,13 +1913,17 @@ class ComeInVelvetGame {
   }
 
   loop(timestamp) {
+    requestAnimationFrame(ts => this.loop(ts));
+
     const dt = Math.min(0.05, (timestamp - this.lastTimestamp) / 1000);
     this.lastTimestamp = timestamp;
 
-    this.update(dt);
-    this.draw();
-
-    requestAnimationFrame(ts => this.loop(ts));
+    try {
+      this.update(dt);
+      this.draw();
+    } catch (err) {
+      console.error('Game loop error recovered:', err);
+    }
   }
 }
 
