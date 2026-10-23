@@ -1,5 +1,5 @@
 // ============================================================================
-// Come In, Velvet! — Main Game Engine, Loop, HUD & Event Orchestration
+// Come In, Velvet! — Main Game Engine, Loop & GameMaker-Style Pixel HUD
 // ============================================================================
 
 class ComeInVelvetGame {
@@ -102,9 +102,8 @@ class ComeInVelvetGame {
 
     this.ui.closeQuestionModal();
     this.ui.updateGuestbookContent(0);
-    this.showBanner('🕘 9:00 PM — DOORS OPEN!', 'Password: "BLOOD MOON" • No Muddy Swamp Boots!', 4.2);
+    this.showBanner('9:00 PM -- SHIFT START!', 'PASSWORD: "BLOOD MOON"  |  NO MUDDY BOOTS!', 4.2);
 
-    // Spawn first guest at the door right away
     this.spawnDoorGuest();
   }
 
@@ -114,7 +113,7 @@ class ComeInVelvetGame {
     this.bannerTimer = duration;
   }
 
-  addFloatingText(text, x, y, color = '#ffd15c') {
+  addFloatingText(text, x, y, color = '#ffcb47') {
     this.floatingTexts.push({
       text,
       x,
@@ -135,7 +134,7 @@ class ComeInVelvetGame {
 
   getTimeString() {
     const progress = Math.min(1, this.nightElapsed / this.nightDuration);
-    const totalMinutes = Math.floor(progress * 180); // 180 mins from 9:00 PM to 12:00 AM
+    const totalMinutes = Math.floor(progress * 180);
     if (totalMinutes >= 180) return '12:00 AM';
     const hour = 9 + Math.floor(totalMinutes / 60);
     const min = totalMinutes % 60;
@@ -175,15 +174,15 @@ class ComeInVelvetGame {
     const spawnY = fromAttic ? this.level.atticPortal.y : this.level.windowEntry.y;
 
     const crasher = new window.Entities.GuestEntity(profile, spawnX, spawnY, 'sneaking');
-    crasher.say(fromAttic ? 'Hehe! Down the chimney!' : 'Sneaking through the window!', 3.2);
+    crasher.say(fromAttic ? 'Hehe! Down the chimney!' : 'Sneaking in the window!', 3.2);
     this.guests.push(crasher);
 
     if (fromAttic) {
       this.atticAlertTimer = 3.5;
-      this.addFloatingText('⚠️ ATTIC SNEAK!', spawnX - 40, spawnY - 30, '#ff3b5c');
+      this.addFloatingText('! ATTIC BREACH !', spawnX - 40, spawnY - 30, '#e83b55');
     } else {
       this.windowAlertTimer = 3.5;
-      this.addFloatingText('⚠️ WINDOW CRASHER!', spawnX - 50, spawnY - 30, '#ff3b5c');
+      this.addFloatingText('! WINDOW BREACH !', spawnX - 50, spawnY - 30, '#e83b55');
     }
     window.SFX.alarmChase();
   }
@@ -222,13 +221,11 @@ class ComeInVelvetGame {
     this.ui.closeQuestionModal();
 
     if (admitVerdict) {
-      // Player clicked "✅ Come In!"
       if (guest.isInvited) {
-        // Correct! Invited guest enters the party
         guest.state = 'party';
         guest.x = 305;
         guest.y = 618;
-        guest.say('Yay! Happy Halloween, Velvet!', 2.8);
+        guest.say('Thanks, Velvet!', 2.8);
 
         this.stats.invitedAdmitted++;
         const pts = 150 * this.combo;
@@ -237,15 +234,14 @@ class ComeInVelvetGame {
         this.partyControl = Math.min(100, this.partyControl + 6);
 
         window.SFX.admitSuccess();
-        this.addFloatingText(`+Invited Guest! +${pts}`, guest.x, guest.y - 36, '#38f2af');
+        this.addFloatingText(`+VIP ADMITTED! +${pts}`, guest.x, guest.y - 36, '#3cd688');
         this.spawnCandy(guest.x + 35, guest.y - 10);
       } else {
-        // Mistake! Let an uninvited crasher into the mansion!
         guest.state = 'fleeing';
         guest.x = 320;
         guest.y = 618;
         guest.vy = -420;
-        guest.say('Bahaha! Sucker! I\'m crashing this party!', 3.4);
+        guest.say('Bahaha! Fooled you, Velvet!', 3.4);
 
         this.stats.slippedThroughDoor++;
         this.combo = 1;
@@ -253,25 +249,22 @@ class ComeInVelvetGame {
         this.screenShake = 0.28;
 
         window.SFX.admitMistake();
-        this.addFloatingText('⚠️ UNINVITED LET IN! CATCH THEM!', guest.x + 40, guest.y - 42, '#ff3b5c');
+        this.addFloatingText('! CRASHER LET IN -- CATCH THEM !', guest.x + 40, guest.y - 42, '#e83b55');
       }
     } else {
-      // Player clicked "🚨 Uninvited!"
       if (!guest.isInvited) {
-        // Spot on! Uninvited guest panics and bolts into the mansion platforms — chase them!
         guest.state = 'fleeing';
         guest.x = 315;
         guest.y = 618;
         guest.vy = -520;
         guest.targetX = 820;
-        guest.say('EEK! My disguise failed! Run for it!', 3.2);
+        guest.say('Ack! Spotted! Run for it!', 3.2);
 
         const pts = 100 * this.combo;
         this.score += pts;
         window.SFX.alarmChase();
-        this.addFloatingText(`🕵️ SPOTTED CRASHER! +${pts} — CATCH 'EM!`, guest.x + 45, guest.y - 42, '#ffd15c');
+        this.addFloatingText(`SPOTTED! +${pts} -- CHASE!`, guest.x + 45, guest.y - 42, '#ffcb47');
       } else {
-        // False accusation! Real VIP guest was turned away
         const idx = this.guests.indexOf(guest);
         if (idx !== -1) this.guests.splice(idx, 1);
 
@@ -281,7 +274,7 @@ class ComeInVelvetGame {
         this.screenShake = 0.25;
 
         window.SFX.admitMistake();
-        this.addFloatingText('❌ RUDE! That was an Invited VIP! (-10% Control)', 270, 555, '#ff3b5c');
+        this.addFloatingText('X FALSE ALARM! THAT WAS A VIP (-10%)', 270, 555, '#e83b55');
       }
     }
   }
@@ -314,10 +307,9 @@ class ComeInVelvetGame {
     this.screenShake = 0.22;
 
     window.SFX.catchCrasher();
-    this.addFloatingText(`🎃 CRASHER YEETED! +${pts}`, g.x, g.y - 28, '#38f2af');
+    this.addFloatingText(`CRASHER CAUGHT! +${pts}`, g.x, g.y - 28, '#3cd688');
     this.spawnCandy(g.x, g.y);
 
-    // Burst of celebratory pumpkin-gold & mint particles
     for (let p = 0; p < 22; p++) {
       const ang = (Math.PI * 2 * p) / 22;
       const spd = 70 + Math.random() * 150;
@@ -327,7 +319,7 @@ class ComeInVelvetGame {
         vx: Math.cos(ang) * spd,
         vy: Math.sin(ang) * spd,
         r: 4 + Math.random() * 5,
-        color: p % 2 === 0 ? '#38f2af' : '#ffd15c',
+        color: p % 2 === 0 ? '#3cd688' : '#ffcb47',
         life: 0.45 + Math.random() * 0.2,
         maxLife: 0.65
       });
@@ -344,7 +336,7 @@ class ComeInVelvetGame {
     this.screenShake = 0.35;
 
     window.SFX.crasherEscaped();
-    this.addFloatingText('💨 CRASHER WRECKED THE ATTIC! (-14% Control)', crasher.x, crasher.y - 20, '#ff3b5c');
+    this.addFloatingText('! CRASHER ESCAPED (-14% CONTROL) !', crasher.x, crasher.y - 20, '#e83b55');
   }
 
   setupInputs() {
@@ -367,7 +359,6 @@ class ComeInVelvetGame {
         return;
       }
 
-      // Global hotkeys
       if (code === 'KeyM') {
         this.ui.btnMute.click();
         return;
@@ -382,7 +373,6 @@ class ComeInVelvetGame {
         return;
       }
 
-      // If Question Modal is open, handle step-by-step interrogation shortcuts
       if (this.ui.isModalOpen()) {
         if (code === 'Space' || code === 'Enter') {
           e.preventDefault();
@@ -405,7 +395,6 @@ class ComeInVelvetGame {
         return;
       }
 
-      // Movement & Action Controls
       if (code === 'KeyA' || code === 'ArrowLeft') this.input.left = true;
       if (code === 'KeyD' || code === 'ArrowRight') this.input.right = true;
       if (code === 'KeyW' || code === 'ArrowUp') {
@@ -425,7 +414,7 @@ class ComeInVelvetGame {
         e.preventDefault();
         const ok = this.velvet.toggleBatForm(this.particles);
         if (!ok) {
-          this.addFloatingText('Need Bat Energy! Collect Soul Candy!', this.velvet.x, this.velvet.y - 30, '#ff8c3b');
+          this.addFloatingText('LOW BAT MP! GRAB CANDY!', this.velvet.x, this.velvet.y - 30, '#ff8533');
         }
       }
 
@@ -435,7 +424,6 @@ class ComeInVelvetGame {
       }
 
       if (code === 'KeyE') {
-        // First check if a crasher is right next to Velvet; otherwise interact with door
         if (!this.tryCatchCrashers()) {
           this.tryInteractAtDoor();
         }
@@ -450,7 +438,6 @@ class ComeInVelvetGame {
       if (code === 'KeyS' || code === 'ArrowDown') this.input.down = false;
     });
 
-    // Canvas Mouse Click support (Start game, Question Door Guest, or Swoop Dash toward click!)
     this.canvas.addEventListener('mousedown', e => {
       const rect = this.canvas.getBoundingClientRect();
       const scaleX = this.canvas.width / rect.width;
@@ -465,7 +452,6 @@ class ComeInVelvetGame {
 
       if (this.ui.isModalOpen()) return;
 
-      // Check if clicking near the Front Door queue guest
       const queue = this.getQueueGuests();
       if (queue.length > 0 && mx < 285 && my > 520) {
         const distToDoor = Math.hypot(this.velvet.x - this.level.frontDoor.x, this.velvet.y - 618);
@@ -475,7 +461,6 @@ class ComeInVelvetGame {
         }
       }
 
-      // Otherwise trigger Sonic Swoop toward mouse click!
       this.velvet.facing = mx >= this.velvet.x ? 1 : -1;
       this.velvet.triggerSwoop(this.particles);
       this.tryCatchCrashers();
@@ -496,11 +481,9 @@ class ComeInVelvetGame {
 
     if (this.state !== 'playing') return;
 
-    // 1. Advance Night Clock (pauses slightly while reading interrogation modal so player isn't rushed unfairly)
     const timeMult = this.ui.isModalOpen() ? 0.35 : 1.0;
     this.nightElapsed += dt * timeMult;
 
-    // Check Hourly Transitions (10:00 PM & 11:00 PM)
     const newHourIdx = this.getHourIndex();
     if (newHourIdx !== this.currentHourIndex) {
       this.currentHourIndex = newHourIdx;
@@ -509,20 +492,19 @@ class ComeInVelvetGame {
 
       if (newHourIdx === 1) {
         this.showBanner(
-          '🕙 10:00 PM — SECURITY TIGHTENED!',
-          'New Rule: Tickets must start with "VV-" and end in an EVEN digit! Watch the 2nd Floor Window!',
+          '10:00 PM -- SECURITY LEVEL 2',
+          'TICKETS MUST START WITH "VV-" AND END IN AN EVEN NUMBER!',
           5.0
         );
       } else if (newHourIdx === 2) {
         this.showBanner(
-          '🕚 11:00 PM — FINAL HOUR BEFORE MIDNIGHT!',
-          'Impostor Alert: Cross-check Guest Costumes with the VIP Roster! Watch the Attic Chimney!',
+          '11:00 PM -- FINAL HOUR RUSH!',
+          'IMPOSTOR ALERT: CHECK VIP COSTUMES IN LEDGER [TAB]!',
           5.2
         );
       }
     }
 
-    // Check Midnight Victory!
     if (this.nightElapsed >= this.nightDuration) {
       this.nightElapsed = this.nightDuration;
       this.state = 'victory';
@@ -531,7 +513,6 @@ class ComeInVelvetGame {
       return;
     }
 
-    // 2. Spawn Door Guests & Sneaky Crashers
     this.doorSpawnTimer -= dt * timeMult;
     if (this.doorSpawnTimer <= 0) {
       this.spawnDoorGuest();
@@ -544,19 +525,16 @@ class ComeInVelvetGame {
       this.sneakSpawnTimer = 24 - this.currentHourIndex * 5;
     }
 
-    // 3. Update Velvet Player
     if (!this.ui.isModalOpen()) {
       this.velvet.update(dt, this.input, this.level, this.particles);
     } else {
       this.ui.drawPortraits();
     }
 
-    // Auto-catch crashers if Velvet is swoop-dashing or in Bat Form touching them
     if (this.velvet.swoopTimer > 0 || this.velvet.isBat) {
       this.tryCatchCrashers();
     }
 
-    // 4. Update Guests & Gatecrashers
     const queueGuests = this.getQueueGuests();
     for (let i = this.guests.length - 1; i >= 0; i--) {
       const g = this.guests[i];
@@ -571,28 +549,24 @@ class ComeInVelvetGame {
         (cx, cy) => this.spawnCandy(cx, cy)
       );
 
-      // If front door guest ran out of patience
       if (g.state === 'queue' && g.patience <= 0) {
         if (this.ui.activeGuest === g) this.ui.closeQuestionModal();
 
         if (g.isInvited) {
-          // Tired of waiting, leaves annoyed
           this.guests.splice(i, 1);
           this.partyControl = Math.max(0, this.partyControl - 5);
-          this.addFloatingText('⏳ Guest tired of waiting! (-5% Control)', 200, 560, '#ff8c3b');
+          this.addFloatingText('GUEST LEFT ANNOYED (-5%)', 200, 560, '#ff8533');
         } else {
-          // Uninvited guest barges right through the door!
           g.state = 'fleeing';
           g.x = 310;
           g.vy = -450;
-          g.say('Tired of waiting! Crashing the party!', 3.0);
+          g.say('Tired of waiting! Crashing in!', 3.0);
           window.SFX.alarmChase();
-          this.addFloatingText('🚪 UNINVITED BARGED IN!', 290, 555, '#ff3b5c');
+          this.addFloatingText('! CRASHER BARGED IN !', 290, 555, '#e83b55');
         }
       }
     }
 
-    // 5. Active Gatecrashers drain Party Control slowly until caught
     const activeCrashers = this.getActiveCrashers();
     window.SFX.chaseMode = activeCrashers.length > 0;
     if (activeCrashers.length > 0) {
@@ -606,7 +580,6 @@ class ComeInVelvetGame {
       }
     }
 
-    // 6. Update Collectible Soul Candies
     for (let i = this.candies.length - 1; i >= 0; i--) {
       const c = this.candies[i];
       c.life -= dt;
@@ -622,13 +595,12 @@ class ComeInVelvetGame {
         this.partyControl = Math.min(100, this.partyControl + 3);
         this.score += 50;
         window.SFX.candyPickup();
-        this.addFloatingText('🍬 +28 Bat Magic!', c.x, c.y - 16, '#c47aff');
+        this.addFloatingText('+28 BAT MP', c.x, c.y - 16, '#c47aff');
       } else if (c.life <= 0) {
         this.candies.splice(i, 1);
       }
     }
 
-    // 7. Update Particles & Floating Texts
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx * dt;
@@ -645,6 +617,50 @@ class ComeInVelvetGame {
     }
   }
 
+  // Helper: Draw classic GameMaker hard-edged pixel box with offset shadow
+  drawGMBox(ctx, x, y, w, h, bg = '#140b24', border = '#f4e4bc', innerBorder = '#4b2b78') {
+    // Hard black pixel shadow
+    ctx.fillStyle = '#05020a';
+    ctx.fillRect(x + 4, y + 4, w, h);
+
+    // Main fill
+    ctx.fillStyle = bg;
+    ctx.fillRect(x, y, w, h);
+
+    // Inner border
+    if (innerBorder) {
+      ctx.strokeStyle = innerBorder;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 3, y + 3, w - 6, h - 6);
+    }
+
+    // Outer crisp border
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(x, y, w, h);
+  }
+
+  // Helper: Segmented arcade bar
+  drawSegmentedBar(ctx, x, y, w, h, pct, fillColor, segments = 10) {
+    ctx.fillStyle = '#080312';
+    ctx.fillRect(x, y, w, h);
+
+    const fillW = Math.max(0, Math.min(w - 4, ((w - 4) * pct) / 100));
+    ctx.fillStyle = fillColor;
+    ctx.fillRect(x + 2, y + 2, fillW, h - 4);
+
+    // Segment dividers
+    ctx.fillStyle = '#080312';
+    const segW = w / segments;
+    for (let i = 1; i < segments; i++) {
+      ctx.fillRect(x + Math.floor(i * segW), y, 2, h);
+    }
+
+    ctx.strokeStyle = '#f4e4bc';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+  }
+
   draw() {
     const ctx = this.ctx;
     ctx.save();
@@ -654,7 +670,6 @@ class ComeInVelvetGame {
       ctx.translate((Math.random() - 0.5) * mag, (Math.random() - 0.5) * mag);
     }
 
-    // 1. Draw Multi-Floor Spooky Mansion & Courtyard
     const progress = Math.min(1, this.nightElapsed / this.nightDuration);
     this.level.draw(
       ctx,
@@ -665,7 +680,7 @@ class ComeInVelvetGame {
       this.atticAlertTimer
     );
 
-    // 2. Draw Collectible Soul Candies
+    // Collectible Soul Candies
     for (const c of this.candies) {
       const bob = Math.sin(this.animTime * 8 + c.x) * 3;
       ctx.save();
@@ -679,14 +694,14 @@ class ComeInVelvetGame {
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = '#ffd15c';
+      ctx.fillStyle = '#ffcb47';
       ctx.beginPath();
       ctx.arc(0, 0, 6, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
-    // 3. Draw Guests & Gatecrashers
+    // Guests & Gatecrashers
     const queue = this.getQueueGuests();
     for (const g of this.guests) {
       window.GameData.drawGuestSprite(ctx, g.x, g.y, g, this.animTime, 1);
@@ -697,96 +712,84 @@ class ComeInVelvetGame {
         const canQuestion = distToDoor <= 115;
 
         // Patience bar
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(g.x - 20, g.y - 46, 40, 5);
-        ctx.fillStyle = g.patience > 35 ? '#38f2af' : '#ff3b5c';
+        ctx.fillStyle = '#080312';
+        ctx.fillRect(g.x - 21, g.y - 47, 42, 7);
+        ctx.fillStyle = g.patience > 35 ? '#3cd688' : '#e83b55';
         ctx.fillRect(g.x - 20, g.y - 46, (40 * Math.max(0, g.patience)) / 100, 5);
 
-        // Prompt pill
-        const pulse = Math.sin(this.animTime * 7) * 2;
-        ctx.fillStyle = canQuestion ? '#ffd15c' : 'rgba(36, 20, 61, 0.9)';
-        ctx.strokeStyle = '#ffd15c';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(g.x - 54, g.y - 74 + pulse, 108, 22, 8);
-        ctx.fill();
-        ctx.stroke();
+        const pulse = Math.floor(Math.sin(this.animTime * 7) * 2);
+        const tagW = 118;
+        this.drawGMBox(
+          ctx,
+          g.x - tagW / 2,
+          g.y - 74 + pulse,
+          tagW,
+          22,
+          canQuestion ? '#ffcb47' : '#140b24',
+          '#f4e4bc',
+          null
+        );
 
-        ctx.fillStyle = canQuestion ? '#1a0b2e' : '#ffd15c';
-        ctx.font = '700 11px Fredoka, sans-serif';
+        ctx.fillStyle = canQuestion ? '#12061f' : '#ffcb47';
+        ctx.font = '700 9px Silkscreen, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(canQuestion ? '[E] QUESTION GUEST' : '🚪 GUEST WAITING!', g.x, g.y - 59 + pulse);
+        ctx.fillText(canQuestion ? '[E] INTERROGATE' : 'VISITOR WAITING', g.x, g.y - 60 + pulse);
       }
 
-      // Fleeing / Sneaking Gatecrasher Marker & Escape Bar
+      // Fleeing / Sneaking Gatecrasher Marker
       if (g.state === 'fleeing' || g.state === 'sneaking') {
-        const bounce = Math.sin(this.animTime * 12) * 3;
-        ctx.fillStyle = '#ff2a55';
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.roundRect(g.x - 56, g.y - 68 + bounce, 112, 20, 8);
-        ctx.fill();
-        ctx.stroke();
+        const bounce = Math.floor(Math.sin(this.animTime * 12) * 3);
+        this.drawGMBox(ctx, g.x - 58, g.y - 68 + bounce, 116, 20, '#9e1b34', '#ffcb47', null);
 
         ctx.fillStyle = '#fff';
-        ctx.font = '700 10.5px Fredoka, sans-serif';
+        ctx.font = '700 8.5px Silkscreen, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('🚨 UNINVITED! [J/CLICK]', g.x, g.y - 54 + bounce);
+        ctx.fillText('! CRASHER [J/CLICK]', g.x, g.y - 55 + bounce);
 
         // Escape timer bar
-        ctx.fillStyle = 'rgba(0,0,0,0.65)';
-        ctx.fillRect(g.x - 24, g.y - 44, 48, 5);
-        ctx.fillStyle = '#ff9d47';
-        ctx.fillRect(g.x - 24, g.y - 44, (48 * Math.max(0, g.escapeTimer)) / g.maxEscapeTimer, 5);
+        ctx.fillStyle = '#080312';
+        ctx.fillRect(g.x - 25, g.y - 45, 50, 6);
+        ctx.fillStyle = '#ff8533';
+        ctx.fillRect(g.x - 24, g.y - 44, (48 * Math.max(0, g.escapeTimer)) / g.maxEscapeTimer, 4);
       }
 
       // Speech callout bubble
       if (g.calloutTimer > 0 && g.calloutText) {
         ctx.save();
-        ctx.font = '600 11px Fredoka, sans-serif';
-        const w = Math.min(220, ctx.measureText(g.calloutText).width + 18);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.94)';
-        ctx.strokeStyle = '#4e2a84';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(g.x - w / 2, g.y - 98, w, 22, 8);
-        ctx.fill();
-        ctx.stroke();
+        ctx.font = '600 12px "Pixelify Sans", monospace';
+        const w = Math.min(230, ctx.measureText(g.calloutText).width + 18);
+        this.drawGMBox(ctx, g.x - w / 2, g.y - 98, w, 22, '#0e061a', '#f4e4bc', null);
 
-        ctx.fillStyle = '#1b0b2e';
+        ctx.fillStyle = '#f7eed7';
         ctx.textAlign = 'center';
         ctx.fillText(g.calloutText, g.x, g.y - 83);
         ctx.restore();
       }
     }
 
-    // 4. Draw Velvet Player
+    // Draw Velvet Player
     window.GameData.drawVelvetSprite(ctx, this.velvet, this.animTime);
 
-    // 5. Draw Particles & Floating Score Texts
+    // Draw Particles & Floating Texts
     for (const p of this.particles) {
       ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
       ctx.fillStyle = p.color;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(p.x - p.r / 2, p.y - p.r / 2, p.r, p.r);
     }
     ctx.globalAlpha = 1;
 
     for (const ft of this.floatingTexts) {
       ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
-      ctx.font = '700 15px Fredoka, sans-serif';
+      ctx.font = '700 11px Silkscreen, monospace';
       ctx.textAlign = 'center';
-      ctx.strokeStyle = '#120721';
-      ctx.lineWidth = 4;
-      ctx.strokeText(ft.text, ft.x, ft.y);
+      ctx.fillStyle = '#05020a';
+      ctx.fillText(ft.text, ft.x + 2, ft.y + 2);
       ctx.fillStyle = ft.color;
       ctx.fillText(ft.text, ft.x, ft.y);
     }
     ctx.globalAlpha = 1;
 
-    // 6. Draw HUD or State Screens
+    // HUD or State Overlays
     if (this.state === 'playing') {
       this.drawHUD(ctx);
     } else if (this.state === 'title') {
@@ -801,145 +804,107 @@ class ComeInVelvetGame {
   }
 
   drawHUD(ctx) {
-    // Top HUD Panel
     ctx.save();
 
-    // 1. Party Control Meter (Top Left)
-    ctx.fillStyle = 'rgba(20, 10, 38, 0.88)';
-    ctx.strokeStyle = '#6c3bb8';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(18, 16, 265, 64, 12);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#f9f3ff';
-    ctx.font = '700 13px Fredoka, sans-serif';
+    // 1. Party Control Box (Top Left)
+    this.drawGMBox(ctx, 16, 12, 255, 58);
+    ctx.fillStyle = '#f7eed7';
+    ctx.font = '700 10px Silkscreen, monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`🏠 PARTY CONTROL: ${Math.ceil(this.partyControl)}%`, 30, 38);
-
-    // Bar background
-    ctx.fillStyle = '#120721';
-    ctx.beginPath();
-    ctx.roundRect(30, 48, 240, 18, 8);
-    ctx.fill();
+    ctx.fillText(`PARTY CONTROL: ${Math.ceil(this.partyControl)}%`, 28, 31);
 
     const ctrlColor =
-      this.partyControl > 60 ? '#38f2af' : this.partyControl > 30 ? '#ffd15c' : '#ff3b5c';
-    ctx.fillStyle = ctrlColor;
-    ctx.beginPath();
-    ctx.roundRect(30, 48, Math.max(0, (240 * this.partyControl) / 100), 18, 8);
-    ctx.fill();
+      this.partyControl > 60 ? '#3cd688' : this.partyControl > 30 ? '#ffcb47' : '#e83b55';
+    this.drawSegmentedBar(ctx, 28, 39, 230, 18, this.partyControl, ctrlColor, 10);
 
-    // 2. Bat Magic Stamina Meter (Next to Party Control)
-    ctx.fillStyle = 'rgba(20, 10, 38, 0.88)';
-    ctx.strokeStyle = this.velvet.isBat ? '#ff5ca8' : '#6c3bb8';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(295, 16, 225, 64, 12);
-    ctx.fill();
-    ctx.stroke();
-
+    // 2. Bat Magic Box
+    this.drawGMBox(ctx, 283, 12, 225, 58, '#140b24', this.velvet.isBat ? '#ff5ca8' : '#f4e4bc');
     ctx.fillStyle = '#e5b8ff';
-    ctx.font = '700 13px Fredoka, sans-serif';
-    ctx.fillText(
-      this.velvet.isBat ? '🦇 BAT FORM: ACTIVE!' : '🦇 BAT MAGIC [SHIFT]:',
-      308,
-      38
-    );
+    ctx.font = '700 10px Silkscreen, monospace';
+    ctx.fillText(this.velvet.isBat ? 'BAT FORM: ON' : 'BAT MP [SHIFT]:', 295, 31);
+    this.drawSegmentedBar(ctx, 295, 39, 200, 18, this.velvet.batEnergy, '#a84cff', 8);
 
-    ctx.fillStyle = '#120721';
-    ctx.beginPath();
-    ctx.roundRect(308, 48, 198, 18, 8);
-    ctx.fill();
-
-    ctx.fillStyle = '#b85cff';
-    ctx.beginPath();
-    ctx.roundRect(308, 48, Math.max(0, (198 * this.velvet.batEnergy) / 100), 18, 8);
-    ctx.fill();
-
-    // 3. Midnight Clock & Progress (Top Center-Right)
-    ctx.fillStyle = 'rgba(20, 10, 38, 0.9)';
-    ctx.strokeStyle = '#ffd15c';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(535, 16, 250, 64, 12);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#ffd15c';
-    ctx.font = '700 18px Fredoka, sans-serif';
+    // 3. Midnight Clock Box (Center)
+    this.drawGMBox(ctx, 520, 12, 240, 58, '#140b24', '#ffcb47');
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 15px Silkscreen, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText(`⏰ ${this.getTimeString()}`, 660, 42);
+    ctx.fillText(this.getTimeString(), 640, 36);
 
-    ctx.fillStyle = '#c2aee0';
-    ctx.font = '600 11.5px Fredoka, sans-serif';
-    ctx.fillText('SURVIVE UNTIL 12:00 AM MIDNIGHT', 660, 64);
+    ctx.fillStyle = '#b09bc9';
+    ctx.font = '700 8.5px Silkscreen, monospace';
+    ctx.fillText('GOAL: SURVIVE TO 12:00 AM', 640, 56);
 
-    // 4. Score, Combo & Active Crasher Alert (Top Right)
+    // 4. Score & Manor Status Box
     const activeCrashers = this.getActiveCrashers().length;
-    ctx.fillStyle = 'rgba(20, 10, 38, 0.88)';
-    ctx.strokeStyle = activeCrashers > 0 ? '#ff3b5c' : '#6c3bb8';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.roundRect(800, 16, 260, 64, 12);
-    ctx.fill();
-    ctx.stroke();
-
+    this.drawGMBox(
+      ctx,
+      772,
+      12,
+      268,
+      58,
+      activeCrashers > 0 ? '#2b0d17' : '#140b24',
+      activeCrashers > 0 ? '#e83b55' : '#f4e4bc'
+    );
     ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffd15c';
-    ctx.font = '700 15px Fredoka, sans-serif';
-    ctx.fillText(`⭐ SCORE: ${this.score}  (x${this.combo})`, 815, 40);
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 11px Silkscreen, monospace';
+    ctx.fillText(`SCORE: ${this.score} (x${this.combo})`, 786, 33);
 
-    ctx.fillStyle = activeCrashers > 0 ? '#ff4d6d' : '#38f2af';
-    ctx.font = '700 12.5px Fredoka, sans-serif';
+    ctx.fillStyle = activeCrashers > 0 ? '#ff6e83' : '#3cd688';
+    ctx.font = '700 9.5px Silkscreen, monospace';
     ctx.fillText(
       activeCrashers > 0
-        ? `🚨 ${activeCrashers} CRASHER(S) IN MANOR!`
-        : `✅ MANOR SECURE (${this.stats.crashersCaught} Caught)`,
-      815,
-      64
+        ? `! ${activeCrashers} CRASHER(S) LOOSE !`
+        : `STATUS: SECURE (${this.stats.crashersCaught} CAUGHT)`,
+      786,
+      54
     );
 
-    // 5. Quick Active Rule Reminder Pill (Top Far Right)
-    ctx.fillStyle = 'rgba(20, 10, 38, 0.88)';
-    ctx.strokeStyle = '#ff8c3b';
+    // 5. Shift Orders Box (Far Right)
+    this.drawGMBox(ctx, 1052, 12, 212, 58);
+    ctx.fillStyle = '#ff8533';
+    ctx.font = '700 9px Silkscreen, monospace';
+    ctx.fillText('PASS: "BLOOD MOON"', 1064, 29);
+    ctx.fillStyle = '#f7eed7';
+    ctx.font = '700 8.5px Silkscreen, monospace';
+    ctx.fillText('* NO MUDDY BOOTS', 1064, 44);
+    ctx.fillText(
+      this.currentHourIndex >= 1 ? '* TICKET: VV- + EVEN#' : '* [TAB] GUEST LEDGER',
+      1064,
+      59
+    );
+
+    // 6. Bottom In-Canvas Retro Control Legend Strip
+    ctx.fillStyle = 'rgba(10, 4, 18, 0.88)';
+    ctx.fillRect(0, 696, 1280, 24);
+    ctx.strokeStyle = '#4b2b78';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(1072, 16, 190, 64, 12);
-    ctx.fill();
+    ctx.moveTo(0, 696);
+    ctx.lineTo(1280, 696);
     ctx.stroke();
 
-    ctx.fillStyle = '#ff9d47';
-    ctx.font = '700 11.5px Fredoka, sans-serif';
-    ctx.fillText('🔑 PASS: "BLOOD MOON"', 1084, 36);
-    ctx.fillStyle = '#f9f3ff';
-    ctx.font = '600 10.5px Fredoka, sans-serif';
-    ctx.fillText('🚫 No Muddy Boots', 1084, 52);
+    ctx.fillStyle = '#d4c2eb';
+    ctx.font = '700 9px Silkscreen, monospace';
+    ctx.textAlign = 'center';
     ctx.fillText(
-      this.currentHourIndex >= 1 ? '🎟️ Ticket: VV- + EVEN #' : '📋 [TAB] Full Guest List',
-      1084,
-      68
+      '[A/D] MOVE   [W/SPACE] JUMP   [S] DROP   [E] INTERROGATE DOOR   [SHIFT] BAT FORM   [J/CLICK] SWOOP CATCH',
+      640,
+      712
     );
 
-    // 6. Hourly Announcement Banner
+    // 7. Hourly Announcement Banner
     if (this.bannerTimer > 0) {
-      ctx.fillStyle = 'rgba(28, 12, 54, 0.94)';
-      ctx.strokeStyle = '#ffd15c';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.roundRect(320, 95, 640, 62, 16);
-      ctx.fill();
-      ctx.stroke();
-
+      this.drawGMBox(ctx, 310, 86, 660, 58, '#1a0c30', '#ffcb47');
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffd15c';
-      ctx.font = '700 18px Fredoka, sans-serif';
-      ctx.fillText(this.bannerText, 640, 122);
+      ctx.fillStyle = '#ffcb47';
+      ctx.font = '700 13px Silkscreen, monospace';
+      ctx.fillText(this.bannerText, 640, 111);
 
-      ctx.fillStyle = '#f9f3ff';
-      ctx.font = '600 13px Fredoka, sans-serif';
-      ctx.fillText(this.bannerSub, 640, 144);
+      ctx.fillStyle = '#f7eed7';
+      ctx.font = '700 9.5px Silkscreen, monospace';
+      ctx.fillText(this.bannerSub, 640, 131);
     }
 
     ctx.restore();
@@ -947,171 +912,160 @@ class ComeInVelvetGame {
 
   drawTitleScreen(ctx) {
     ctx.save();
-    ctx.fillStyle = 'rgba(11, 5, 22, 0.76)';
+    ctx.fillStyle = 'rgba(8, 3, 15, 0.78)';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Main Title Card
-    ctx.fillStyle = 'rgba(28, 14, 51, 0.95)';
-    ctx.strokeStyle = '#9e47ff';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.roundRect(220, 88, 840, 545, 24);
-    ctx.fill();
-    ctx.stroke();
+    this.drawGMBox(ctx, 210, 78, 860, 555, '#140b24', '#f4e4bc', '#6838a8');
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#ff9d47';
-    ctx.font = '700 16px Fredoka, sans-serif';
-    ctx.fillText('🎃 SPOOKY-CUTE 2D PLATFORMER • THEME: "UNINVITED" 🦇', 640, 134);
+    ctx.fillStyle = '#ff8533';
+    ctx.font = '700 11px Silkscreen, monospace';
+    ctx.fillText('-- SPOOKY 2D GATEKEEPER PLATFORMER  |  THEME: UNINVITED --', 640, 122);
 
-    ctx.fillStyle = '#ffd15c';
-    ctx.font = '700 52px Fredoka, sans-serif';
-    ctx.fillText('Come In, Velvet!', 640, 192);
+    // Pixel Drop-Shadow Title
+    ctx.fillStyle = '#05020a';
+    ctx.font = '700 42px Silkscreen, monospace';
+    ctx.fillText('COME IN, VELVET!', 644, 179);
+    ctx.fillStyle = '#ffcb47';
+    ctx.fillText('COME IN, VELVET!', 640, 175);
 
-    ctx.fillStyle = '#e0ccf7';
-    ctx.font = '500 16px Fredoka, sans-serif';
+    ctx.fillStyle = '#d8c7f0';
+    ctx.font = '500 17px "Pixelify Sans", monospace';
     ctx.fillText(
-      'You are Velvet, the party\'s vampire-witch gatekeeper! Keep the mansion under control until Midnight!',
+      'Play as Velvet, the party gatekeeper. Keep the manor under control until 12:00 AM Midnight!',
       640,
-      228
+      212
     );
 
-    // 4 Core Gameplay Pillars Grid
     const pillars = [
       {
-        icon: '🕵️',
-        title: '1. Question Guests at the Door',
-        desc: 'Press [E] at the front door! Check names, tickets, footwear, and tonight\'s secret password ("BLOOD MOON").'
+        tag: '[01] INTERROGATE',
+        title: 'QUESTION VISITORS STEP-BY-STEP',
+        desc: 'Press [E] at the door. Use [SPACE] to check tickets, ask the secret password ("BLOOD MOON"), and inspect boots.'
       },
       {
-        icon: '🚪',
-        title: '2. Spot Uninvited Sneaks',
-        desc: 'Turn away suspicious crashers at the door — and watch out for crashers sneaking in the 2nd-floor Window & Attic!'
+        tag: '[02] SPOT SNEAKS',
+        title: 'GUARD WINDOWS & ATTIC',
+        desc: 'Turn away impostors at the gate and watch for crashers climbing the 2nd-floor Window and 3rd-floor Chimney!'
       },
       {
-        icon: '🦇',
-        title: '3. Bat Form & Platformer Chase',
-        desc: 'Press [SHIFT] to transform into a flying Vampire Bat and [J] / [Click] to Sonic Swoop & catch fleeing gatecrashers!'
+        tag: '[03] BAT MORPH',
+        title: 'FLY & SONIC SWOOP',
+        desc: 'Press [SHIFT] to morph into a Vampire Bat and [J] or [CLICK] to Sonic Swoop and catch fleeing gatecrashers!'
       },
       {
-        icon: '⏰',
-        title: '4. Survive Until 12:00 AM Midnight',
-        desc: 'Rules tighten at 10 PM & 11 PM! Keep Party Control above 0% until the clock strikes Midnight!'
+        tag: '[04] MIDNIGHT',
+        title: 'HOLD THE FORT TO 12:00 AM',
+        desc: 'Security tightens at 10 PM and 11 PM. Keep Party Control above 0% until the clock strikes Midnight!'
       }
     ];
 
     pillars.forEach((p, i) => {
       const col = i % 2;
       const row = Math.floor(i / 2);
-      const bx = 260 + col * 390;
-      const by = 258 + row * 118;
+      const bx = 250 + col * 396;
+      const by = 240 + row * 122;
 
-      ctx.fillStyle = 'rgba(48, 25, 82, 0.85)';
-      ctx.strokeStyle = '#6c3bb8';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(bx, by, 370, 102, 14);
-      ctx.fill();
-      ctx.stroke();
+      this.drawGMBox(ctx, bx, by, 384, 106, '#1c0f30', '#6b43a3', null);
 
       ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffd15c';
-      ctx.font = '700 16px Fredoka, sans-serif';
-      ctx.fillText(`${p.icon}  ${p.title}`, bx + 16, by + 30);
+      ctx.fillStyle = '#ff8533';
+      ctx.font = '700 9px Silkscreen, monospace';
+      ctx.fillText(p.tag, bx + 14, by + 22);
 
-      ctx.fillStyle = '#d8c7f0';
-      ctx.font = '500 13px Fredoka, sans-serif';
-      this.wrapText(ctx, p.desc, bx + 16, by + 54, 338, 18);
+      ctx.fillStyle = '#ffcb47';
+      ctx.font = '700 10.5px Silkscreen, monospace';
+      ctx.fillText(p.title, bx + 14, by + 40);
+
+      ctx.fillStyle = '#e4d8f5';
+      ctx.font = '500 14px "Pixelify Sans", monospace';
+      this.wrapText(ctx, p.desc, bx + 14, by + 62, 356, 17);
     });
 
-    // Start CTA Button
-    const pulse = Math.sin(this.animTime * 6) * 4;
-    ctx.fillStyle = '#38f2af';
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.roundRect(450 - pulse, 520, 380 + pulse * 2, 64, 16);
-    ctx.fill();
-    ctx.stroke();
+    // Blinking Arcade Start Button
+    const blink = Math.floor(this.animTime * 3) % 2 === 0;
+    this.drawGMBox(
+      ctx,
+      430,
+      520,
+      420,
+      58,
+      blink ? '#208c5a' : '#176e46',
+      '#f4e4bc',
+      null
+    );
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#0b291e';
-    ctx.font = '700 22px Fredoka, sans-serif';
-    ctx.fillText('▶ START NIGHT SHIFT (SPACE / CLICK)', 640, 560);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 14px Silkscreen, monospace';
+    ctx.fillText('► PRESS [SPACE] OR CLICK TO START', 640, 554);
 
     ctx.restore();
   }
 
   drawEndScreen(ctx, isVictory) {
     ctx.save();
-    ctx.fillStyle = 'rgba(11, 5, 22, 0.82)';
+    ctx.fillStyle = 'rgba(8, 3, 15, 0.84)';
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    ctx.fillStyle = 'rgba(28, 14, 51, 0.96)';
-    ctx.strokeStyle = isVictory ? '#38f2af' : '#ff3b5c';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.roundRect(300, 110, 680, 500, 24);
-    ctx.fill();
-    ctx.stroke();
+    this.drawGMBox(
+      ctx,
+      290,
+      105,
+      700,
+      505,
+      '#140b24',
+      isVictory ? '#3cd688' : '#e83b55',
+      '#4b2b78'
+    );
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = isVictory ? '#38f2af' : '#ff3b5c';
-    ctx.font = '700 42px Fredoka, sans-serif';
+    ctx.fillStyle = isVictory ? '#3cd688' : '#e83b55';
+    ctx.font = '700 28px Silkscreen, monospace';
     ctx.fillText(
-      isVictory ? '🕛 MIDNIGHT! PARTY SAVED! 🎃' : '💥 PARTY OUT OF CONTROL!',
+      isVictory ? '12:00 AM -- NIGHT CLEAR!' : 'MANOR OVERRUN -- GAME OVER',
       640,
-      178
+      168
     );
 
-    ctx.fillStyle = '#f9f3ff';
-    ctx.font = '600 17px Fredoka, sans-serif';
+    ctx.fillStyle = '#f7eed7';
+    ctx.font = '500 17px "Pixelify Sans", monospace';
     ctx.fillText(
       isVictory
-        ? 'Velvet kept every uninvited troublemaker in check until 12:00 AM!'
-        : 'Too many uninvited gatecrashers overwhelmed Velvet\'s spooky manor!',
+        ? 'Velvet kept every uninvited troublemaker in check until Midnight!'
+        : 'Too many uninvited gatecrashers overwhelmed the mansion party!',
       640,
-      215
+      204
     );
 
-    // Calculate Gatekeeper Rank
     let rank = 'B';
     if (isVictory && this.partyControl >= 80 && this.score >= 1500) rank = 'S+ (MASTER GATEKEEPER)';
-    else if (isVictory && this.partyControl >= 55) rank = 'A (SPOOKY PRO)';
+    else if (isVictory && this.partyControl >= 55) rank = 'A (SENIOR GUARD)';
     else if (!isVictory) rank = 'C (OVERRUN)';
 
-    ctx.fillStyle = '#ffd15c';
-    ctx.font = '700 24px Fredoka, sans-serif';
-    ctx.fillText(`🏆 RANK: ${rank}   •   FINAL SCORE: ${this.score}`, 640, 265);
+    ctx.fillStyle = '#ffcb47';
+    ctx.font = '700 15px Silkscreen, monospace';
+    ctx.fillText(`RANK: ${rank}   |   SCORE: ${this.score}`, 640, 248);
 
-    // Stats Box
     const statLines = [
-      `✅ Invited VIPs Admitted: ${this.stats.invitedAdmitted}`,
-      `🦇 Uninvited Gatecrashers Caught: ${this.stats.crashersCaught}`,
-      `🚪 Uninvited Slipped Past Door: ${this.stats.slippedThroughDoor}`,
-      `💨 Crashers Escaped in Manor: ${this.stats.crashersEscaped}`,
-      `❌ False Accusations: ${this.stats.falseAccusations}`,
-      `🏠 Final Party Control: ${Math.ceil(this.partyControl)}%`
+      `VIP GUESTS ADMITTED ......... ${this.stats.invitedAdmitted}`,
+      `GATECRASHERS CAUGHT ......... ${this.stats.crashersCaught}`,
+      `CRASHERS SLIPPED AT DOOR .... ${this.stats.slippedThroughDoor}`,
+      `CRASHERS ESCAPED IN MANOR ... ${this.stats.crashersEscaped}`,
+      `FALSE ACCUSATIONS ........... ${this.stats.falseAccusations}`,
+      `FINAL PARTY CONTROL ......... ${Math.ceil(this.partyControl)}%`
     ];
 
     statLines.forEach((line, idx) => {
       ctx.fillStyle = '#d8c7f0';
-      ctx.font = '600 16px Fredoka, sans-serif';
-      ctx.fillText(line, 640, 315 + idx * 32);
+      ctx.font = '700 11px Silkscreen, monospace';
+      ctx.fillText(line, 640, 298 + idx * 32);
     });
 
-    // Play Again Button
-    ctx.fillStyle = '#ff8c3b';
-    ctx.strokeStyle = '#ffd15c';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.roundRect(470, 520, 340, 58, 14);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = '#1b0b2e';
-    ctx.font = '700 20px Fredoka, sans-serif';
-    ctx.fillText('🔄 PLAY AGAIN (SPACE / CLICK)', 640, 556);
+    this.drawGMBox(ctx, 455, 515, 370, 54, '#ff8533', '#f4e4bc', null);
+    ctx.fillStyle = '#140824';
+    ctx.font = '700 13px Silkscreen, monospace';
+    ctx.fillText('► PLAY AGAIN [SPACE / CLICK]', 640, 547);
 
     ctx.restore();
   }

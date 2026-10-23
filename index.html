@@ -3,149 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Come In, Velvet! 🎃🦇 — Spooky-Cute 2D Gatekeeper Platformer</title>
+  <title>Come In, Velvet!</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;600;700&family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div id="app-wrapper">
-    <!-- Top Header / Bar -->
-    <header class="top-bar">
-      <div class="brand">
-        <span class="brand-icon">🎃🦇</span>
-        <h1>Come In, Velvet!</h1>
-        <span class="theme-badge">THEME: UNINVITED</span>
-      </div>
-      <div class="top-controls">
-        <button id="btn-guestbook" class="hud-btn" title="Toggle Guestbook & Rules (Tab / G)">
-          📋 Guest List &amp; Rules <kbd>TAB</kbd>
-        </button>
-        <button id="btn-mute" class="hud-btn" title="Toggle Music & SFX (M)">
-          🔊 Audio: ON <kbd>M</kbd>
-        </button>
-        <button id="btn-restart" class="hud-btn" title="Restart Night (R)">
-          🔄 Restart
-        </button>
-      </div>
-    </header>
-
-    <!-- Main Game Container -->
+    <!-- Main GameMaker Viewport Frame -->
     <main class="game-stage">
       <div class="canvas-container" id="canvas-container">
+        <!-- Subtle In-Frame Top Bezel Controls -->
+        <div class="gm-bezel-bar">
+          <div class="gm-bezel-title">COME IN, VELVET! <span class="gm-ver">v1.0</span></div>
+          <div class="gm-bezel-actions">
+            <button id="btn-guestbook" class="gm-btn-tiny">[TAB] GUEST LEDGER</button>
+            <button id="btn-mute" class="gm-btn-tiny">[M] SOUND: ON</button>
+            <button id="btn-restart" class="gm-btn-tiny">[R] RESET</button>
+          </div>
+        </div>
+
         <canvas id="game-canvas" width="1280" height="720"></canvas>
 
-        <!-- Interactive Door Questioning Overlay (Clean Step-by-Step Animated Dialogue) -->
-        <div id="question-modal" class="question-modal hidden">
-          <!-- Compact Top Bar: Step Dots + Clues Pills + Rules Peek -->
-          <div class="qm-header">
-            <div class="qm-steps-indicator">
-              <span class="qm-badge">🚪 DOOR CHECK</span>
-              <button class="step-dot" id="step-dot-1" title="1: Name & Ticket">1. Ticket</button>
-              <span class="step-arrow">➔</span>
-              <button class="step-dot" id="step-dot-2" title="2: Secret Password">2. Password</button>
-              <span class="step-arrow">➔</span>
-              <button class="step-dot" id="step-dot-3" title="3: Inspect Outfit & Shoes">3. Inspect</button>
+        <!-- GameMaker RPG-Style Interrogation Dialogue Box -->
+        <div id="question-modal" class="gm-dialogue-box hidden">
+          <!-- Top Strip: Step Tabs + Rules Toggle -->
+          <div class="gm-dlg-topbar">
+            <div class="gm-step-tabs">
+              <span class="gm-label">CHECK:</span>
+              <button class="step-dot" id="step-dot-1">[1] TICKET</button>
+              <button class="step-dot" id="step-dot-2">[2] PASSWORD</button>
+              <button class="step-dot" id="step-dot-3">[3] BOOTS</button>
             </div>
 
-            <div class="qm-header-right">
-              <button id="btn-peek-rules" class="qm-peek-btn" title="Peek Tonight's Rules (R)">
-                📜 Rules (<span id="qm-hour-label">9:00 PM</span>)
-              </button>
-              <button id="qm-close" class="qm-close-btn" title="Step back (Esc)">✕</button>
+            <div id="qm-clues-strip" class="gm-clues-strip">
+              <span class="clue-placeholder">PRESS [SPACE] TO INTERROGATE</span>
+            </div>
+
+            <div class="gm-dlg-tools">
+              <button id="btn-peek-rules" class="gm-btn-small">RULES (<span id="qm-hour-label">9:00 PM</span>)</button>
+              <button id="qm-close" class="gm-btn-close" title="Step Back [ESC]">X</button>
             </div>
           </div>
 
-          <!-- Collapsible Quick Rules Popover (hidden by default so UI stays uncluttered) -->
-          <div id="qm-rules-popover" class="qm-rules-popover hidden">
+          <!-- Collapsible Parchment Rules Note -->
+          <div id="qm-rules-popover" class="gm-rules-note hidden">
+            <div class="gm-note-title">GATEKEEPER ORDERS</div>
             <div id="qm-rules-content" class="qm-rules-scroll"></div>
           </div>
 
-          <!-- Discovered Clue Pills Row (pops in one by one as you ask questions) -->
-          <div id="qm-clues-strip" class="qm-clues-strip">
-            <span class="clue-placeholder">🕵️ Press <kbd>SPACE</kbd> to question this visitor one by one!</span>
-          </div>
-
-          <!-- Face-to-Face Animated Dialogue Stage -->
-          <div class="qm-stage">
-            <!-- Left: Velvet Gatekeeper Portrait -->
-            <div class="qm-actor velvet-actor" id="qm-velvet-card">
-              <canvas id="qm-velvet-portrait" width="96" height="96"></canvas>
-              <div class="actor-name">Velvet 🦇</div>
-              <div class="actor-sub" id="qm-velvet-mood">Gatekeeper</div>
+          <!-- Main RPG Portrait & Dialogue Stage -->
+          <div class="gm-dlg-main">
+            <!-- Left Portrait: Velvet -->
+            <div class="gm-portrait-box velvet-box" id="qm-velvet-card">
+              <div class="gm-portrait-frame">
+                <canvas id="qm-velvet-portrait" width="96" height="96"></canvas>
+              </div>
+              <div class="gm-nameplate">VELVET</div>
+              <div class="gm-moodplate" id="qm-velvet-mood">GATEKEEPER</div>
             </div>
 
-            <!-- Center: One-by-One Question & Answer Exchange -->
-            <div class="qm-exchange">
-              <!-- Velvet's Question Bubble (animates in when asking) -->
-              <div id="qm-velvet-bubble" class="qm-bubble velvet-bubble hidden">
-                <span class="bubble-tag">VELVET ASKS:</span>
-                <p id="qm-velvet-text">"Hold it! Name and ticket, please!"</p>
+            <!-- Center Text Box -->
+            <div class="gm-textbox-col">
+              <!-- Velvet's Prompt Line -->
+              <div id="qm-velvet-bubble" class="gm-velvet-line hidden">
+                <span class="gm-speaker-tag">VELVET:</span>
+                <span id="qm-velvet-text">"Hold it! Name and ticket, please!"</span>
               </div>
 
-              <!-- Animated Evidence Prop (Ticket / Password / Magnifier) -->
-              <div id="qm-evidence-prop" class="qm-evidence-prop hidden"></div>
+              <!-- Physical Ticket / Evidence Slip -->
+              <div id="qm-evidence-prop" class="gm-evidence-slip hidden"></div>
 
-              <!-- Guest's Answer Bubble (typewriter animation) -->
-              <div id="qm-guest-bubble" class="qm-bubble guest-bubble">
-                <div class="qm-speaker" id="qm-speaker-label">Visitor at the Door:</div>
+              <!-- Visitor's Speech Box -->
+              <div id="qm-guest-bubble" class="gm-speech-box">
+                <div class="gm-speaker-header" id="qm-speaker-label">VISITOR:</div>
                 <p id="qm-speech-text">"Trick or treat! Let me into the party, Velvet!"</p>
+                <span class="gm-blink-cursor">▼</span>
               </div>
             </div>
 
-            <!-- Right: Guest Portrait with Scan / Reaction FX -->
-            <div class="qm-actor guest-actor" id="qm-guest-card">
-              <div class="portrait-wrap">
+            <!-- Right Portrait: Visitor -->
+            <div class="gm-portrait-box guest-box" id="qm-guest-card">
+              <div class="gm-portrait-frame">
                 <canvas id="qm-portrait" width="106" height="106"></canvas>
                 <div id="qm-scan-beam" class="qm-scan-beam hidden"></div>
               </div>
-              <div class="actor-name" id="qm-guest-name">???</div>
-              <div class="actor-sub" id="qm-guest-costume">Costume: ???</div>
+              <div class="gm-nameplate" id="qm-guest-name">???</div>
+              <div class="gm-moodplate" id="qm-guest-costume">UNKNOWN</div>
             </div>
           </div>
 
-          <!-- Bottom Action Bar: Primary Next-Question Button + Verdict Buttons -->
-          <div class="qm-footer">
-            <button id="btn-next-question" class="qm-next-btn">
-              💬 Ask Question 1/3: Check Name &amp; Ticket <kbd>SPACE</kbd>
+          <!-- Bottom Command Bar -->
+          <div class="gm-dlg-footer">
+            <button id="btn-next-question" class="gm-cmd-btn next-cmd">
+              ► ASK QUESTION 1/3: TICKET &amp; ID [SPACE]
             </button>
 
-            <div class="qm-verdict-group">
-              <button id="btn-admit" class="qm-verdict-btn admit">
-                ✅ Come In! <kbd>F</kbd>
+            <div class="gm-verdict-cmds">
+              <button id="btn-admit" class="gm-cmd-btn admit-cmd">
+                [F] ADMIT GUEST
               </button>
-              <button id="btn-reject" class="qm-verdict-btn reject">
-                🚨 Uninvited! <kbd>X</kbd>
+              <button id="btn-reject" class="gm-cmd-btn reject-cmd">
+                [X] UNINVITED!
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Floating Guestbook Drawer (Toggle with Tab / G) -->
-        <aside id="guestbook-drawer" class="guestbook-drawer hidden">
-          <div class="gb-header">
-            <h3>📖 Velvet's Gatekeeper Ledger</h3>
-            <button id="gb-close" class="qm-close-btn">✕</button>
+        <!-- Parchment Guestbook Ledger (Toggle with TAB) -->
+        <aside id="guestbook-drawer" class="gm-ledger-drawer hidden">
+          <div class="gm-ledger-header">
+            <h3>GATEKEEPER LEDGER</h3>
+            <button id="gb-close" class="gm-btn-close">X</button>
           </div>
           <div id="gb-body" class="gb-body"></div>
         </aside>
       </div>
     </main>
-
-    <!-- Bottom Controls Bar -->
-    <footer class="controls-bar">
-      <div class="control-pill"><kbd>A</kbd><kbd>D</kbd> or <kbd>◀</kbd><kbd>▶</kbd> Move</div>
-      <div class="control-pill"><kbd>W</kbd> / <kbd>SPACE</kbd> Jump &amp; Double Jump</div>
-      <div class="control-pill"><kbd>S</kbd> / <kbd>▼</kbd> Drop Through Platform</div>
-      <div class="control-pill highlight"><kbd>E</kbd> Question Guest at Door</div>
-      <div class="control-pill bat-pill"><kbd>SHIFT</kbd> or <kbd>K</kbd> Toggle Bat Form 🦇</div>
-      <div class="control-pill catch-pill"><kbd>J</kbd> or <kbd>CLICK</kbd> Sonic Swoop / Catch Crasher!</div>
-      <div class="control-pill"><kbd>TAB</kbd> Guest List</div>
-    </footer>
   </div>
 
-  <!-- Game Scripts (ordered for zero-bundler instant browser & itch.io execution) -->
+  <!-- Game Scripts -->
   <script src="js/audio.js"></script>
   <script src="js/data.js"></script>
   <script src="js/level.js"></script>

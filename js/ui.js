@@ -1,5 +1,5 @@
 // ============================================================================
-// Come In, Velvet! — Step-by-Step Animated Interrogation UI & Guestbook
+// Come In, Velvet! — GameMaker RPG-Style Interrogation UI & Guestbook
 // ============================================================================
 
 class UIController {
@@ -74,7 +74,6 @@ class UIController {
       this.btnPeekRules.classList.toggle('open');
     });
 
-    // Clicking speech bubble finishes typewriter immediately
     this.elGuestBubble.addEventListener('click', () => {
       if (this.isTyping()) {
         this.finishTypewriter();
@@ -90,7 +89,7 @@ class UIController {
 
     this.btnMute.addEventListener('click', () => {
       const muted = window.SFX.toggleMute();
-      this.btnMute.innerHTML = muted ? '🔇 Audio: OFF <kbd>M</kbd>' : '🔊 Audio: ON <kbd>M</kbd>';
+      this.btnMute.textContent = muted ? '[M] SOUND: OFF' : '[M] SOUND: ON';
     });
 
     this.btnRestart.addEventListener('click', () => {
@@ -107,17 +106,16 @@ class UIController {
     this.elRulesPopover.classList.add('hidden');
     this.btnPeekRules.classList.remove('open');
 
-    this.elName.textContent = guest.askedId ? guest.name : 'Unknown Visitor';
-    this.elCostume.textContent = guest.costume;
+    this.elName.textContent = guest.askedId ? guest.name.toUpperCase() : 'UNKNOWN';
+    this.elCostume.textContent = guest.costume.toUpperCase();
     this.elHourLabel.textContent = timeString;
-    this.elVelvetMood.textContent = 'Gatekeeper';
+    this.elVelvetMood.textContent = 'GATEKEEPER';
     this.elScanBeam.classList.add('hidden');
 
-    // Reset Greeting View if no question asked yet
     this.elVelvetBubble.classList.add('hidden');
     this.elEvidenceProp.classList.add('hidden');
-    this.elSpeaker.textContent = `${guest.costume} Visitor says:`;
-    this.startTypewriter(guest.greeting);
+    this.elSpeaker.textContent = `${guest.costume.toUpperCase()} VISITOR:`;
+    this.startTypewriter('* ' + guest.greeting);
 
     this.updateStepDots();
     this.updateNextButtonLabel();
@@ -145,11 +143,6 @@ class UIController {
     this.typewriterFullText = text;
     this.typewriterIndex = 0;
     this.elSpeech.textContent = '';
-
-    // Re-trigger bubble slide animation
-    this.elGuestBubble.style.animation = 'none';
-    void this.elGuestBubble.offsetWidth;
-    this.elGuestBubble.style.animation = '';
 
     this.elGuestCard.classList.add('talking');
 
@@ -182,11 +175,9 @@ class UIController {
     this.elGuestCard.classList.remove('talking');
   }
 
-  // Advances one by one when pressing SPACE or clicking the Next Question button
   advanceStep() {
     if (!this.activeGuest) return;
 
-    // If typewriter is currently animating, complete it on first press
     if (this.isTyping()) {
       this.finishTypewriter();
       return;
@@ -199,7 +190,6 @@ class UIController {
     } else if (!this.activeGuest.askedInspect) {
       this.askQuestion('inspect');
     } else {
-      // Cycle through 1 -> 2 -> 3 if all already asked
       const nextMap = { 1: 'pass', 2: 'inspect', 3: 'id' };
       this.askQuestion(nextMap[this.currentStep] || 'id');
     }
@@ -215,18 +205,10 @@ class UIController {
     const g = this.activeGuest;
     if (!g) return;
 
-    // Animate Velvet asking
     this.elVelvetBubble.classList.remove('hidden');
-    this.elVelvetBubble.style.animation = 'none';
-    void this.elVelvetBubble.offsetWidth;
-    this.elVelvetBubble.style.animation = '';
     this.triggerCardAnimation(this.elVelvetCard, 'happy-hop');
 
     this.elEvidenceProp.classList.remove('hidden', 'prop-ok', 'prop-sus');
-    this.elEvidenceProp.style.animation = 'none';
-    void this.elEvidenceProp.offsetWidth;
-    this.elEvidenceProp.style.animation = '';
-
     this.elScanBeam.classList.add('hidden');
 
     if (type === 'id') {
@@ -235,8 +217,8 @@ class UIController {
       g.askedId = true;
 
       this.elVelvetText.textContent = '"Hold it right there! Name and invitation ticket, please!"';
-      this.elName.textContent = g.name;
-      this.elSpeaker.textContent = `${g.name} (${g.costume}) replies:`;
+      this.elName.textContent = g.name.toUpperCase();
+      this.elSpeaker.textContent = `${g.name.toUpperCase()} (${g.costume.toUpperCase()}):`;
 
       const validPrefix = g.ticketCode.startsWith('VV-');
       const lastDigit = parseInt(g.ticketCode.slice(-1), 10);
@@ -250,83 +232,82 @@ class UIController {
 
       g.step1Ok = stepOk;
       this.guestReaction = stepOk ? 'good' : 'sus';
-      this.elVelvetMood.textContent = stepOk ? 'Ticket Checked ✨' : 'Suspicious ID! 🤨';
+      this.elVelvetMood.textContent = stepOk ? 'ID VERIFIED' : 'SUSPICIOUS ID!';
 
-      // Show animated Ticket Evidence Card
       this.elEvidenceProp.classList.add(stepOk ? 'prop-ok' : 'prop-sus');
       if (!ticketOk) {
-        this.elEvidenceProp.textContent = `🎟️ TICKET: ${g.ticketCode} (⚠️ INVALID CODE!)`;
+        this.elEvidenceProp.textContent = `[TICKET: ${g.ticketCode}] -- COUNTERFEIT CODE!`;
       } else if (!costumeOk) {
-        this.elEvidenceProp.textContent = `🎭 ${g.name} should be ${vipMatch.costume}, NOT ${g.costume}!`;
+        this.elEvidenceProp.textContent = `[ROSTER MISMATCH] ${g.name} = ${vipMatch.costume.toUpperCase()}!`;
       } else {
-        this.elEvidenceProp.textContent = `🎟️ TICKET: ${g.ticketCode} • VIP: ${g.name} (✔ VALID)`;
+        this.elEvidenceProp.textContent = `[TICKET: ${g.ticketCode}] GUEST: ${g.name.toUpperCase()} (OK)`;
       }
 
       this.addClue(
         'id',
         stepOk
-          ? `🎟️ ${g.ticketCode} (${g.name})`
+          ? `ID: ${g.ticketCode} OK`
           : !ticketOk
-          ? `🎟️ Fake Ticket: ${g.ticketCode}`
-          : `🎭 Fake ${g.name} (Wrong Costume!)`,
+          ? `FAKE TICKET: ${g.ticketCode}`
+          : `IMPOSTOR COSTUME`,
         stepOk
       );
 
       this.triggerCardAnimation(this.elGuestCard, stepOk ? 'happy-hop' : 'sus-shake');
-      this.startTypewriter(g.idResponse);
+      this.startTypewriter('* ' + g.idResponse);
     } else if (type === 'pass') {
       this.currentStep = 2;
       g.lastStep = 2;
       g.askedPass = true;
 
       this.elVelvetText.textContent = '"Lean in close... What is tonight\'s secret password?"';
-      this.elSpeaker.textContent = `${g.askedId ? g.name : g.costume} whispers:`;
+      this.elSpeaker.textContent = `${(g.askedId ? g.name : g.costume).toUpperCase()} WHISPERS:`;
 
       const stepOk = g.knowsPassword;
       g.step2Ok = stepOk;
       this.guestReaction = stepOk ? 'good' : 'sus';
-      this.elVelvetMood.textContent = stepOk ? 'Password OK ✨' : 'Wrong Password! 🚨';
+      this.elVelvetMood.textContent = stepOk ? 'PASS MATCHED' : 'WRONG PASS!';
 
       this.elEvidenceProp.classList.add(stepOk ? 'prop-ok' : 'prop-sus');
       this.elEvidenceProp.textContent = stepOk
-        ? '🔑 PASSWORD: "BLOOD MOON" (✔ CORRECT)'
-        : '🔑 PASSWORD CHECK FAILED! (⚠️ UNINVITED)';
+        ? '[PASSWORD: "BLOOD MOON"] -- VERIFIED'
+        : '[PASSWORD FAILED] -- DOES NOT KNOW CODE!';
 
       this.addClue(
         'pass',
-        stepOk ? '🔑 Knows "BLOOD MOON"' : '🔑 Wrong Password!',
+        stepOk ? 'PASS: BLOOD MOON' : 'WRONG PASSWORD!',
         stepOk
       );
 
       this.triggerCardAnimation(this.elGuestCard, stepOk ? 'happy-hop' : 'sus-shake');
-      this.startTypewriter(g.passwordLine);
+      this.startTypewriter('* ' + g.passwordLine);
     } else if (type === 'inspect') {
       this.currentStep = 3;
       g.lastStep = 3;
       g.askedInspect = true;
 
-      this.elVelvetText.textContent = '"Hold still! Let me inspect your footwear and outfit..."';
-      this.elSpeaker.textContent = `${g.askedId ? g.name : g.costume} says:`;
+      this.elVelvetText.textContent = '"Hold still! Let me check your boots and outfit..."';
+      this.elSpeaker.textContent = `${(g.askedId ? g.name : g.costume).toUpperCase()}:`;
       this.elScanBeam.classList.remove('hidden');
 
       const stepOk = !g.hasMuddyBoots;
       g.step3Ok = stepOk;
       this.guestReaction = stepOk ? 'good' : 'sus';
-      this.elVelvetMood.textContent = stepOk ? 'Shoes Clean ✨' : 'Muddy Boots! 🥾';
+      this.elVelvetMood.textContent = stepOk ? 'BOOTS CLEAN' : 'MUDDY BOOTS!';
 
       this.elEvidenceProp.classList.add(stepOk ? 'prop-ok' : 'prop-sus');
       this.elEvidenceProp.textContent = stepOk
-        ? `🔍 SHOES: ${g.shoes} (✔ CLEAN)`
-        : '🔍 MUDDY SWAMP BOOTS DETECTED! (⚠️ FORBIDDEN)';
+        ? `[FOOTWEAR: ${g.shoes.toUpperCase()}] -- CLEAN`
+        : '[VIOLATION: MUDDY SWAMP BOOTS DETECTED!]';
 
       this.addClue(
         'inspect',
-        stepOk ? '🥾 Clean Shoes' : '🥾 Muddy Swamp Boots!',
+        stepOk ? 'BOOTS: CLEAN' : 'MUDDY BOOTS!',
         stepOk
       );
 
       this.triggerCardAnimation(this.elGuestCard, stepOk ? 'happy-hop' : 'sus-shake');
-      this.startTypewriter(g.inspectResponse);
+      this.startTypewriter('* ' + g.inspectResponse);
     }
 
     this.updateStepDots();
@@ -358,14 +339,14 @@ class UIController {
 
     this.btnNextQuestion.classList.remove('complete');
     if (!g.askedId) {
-      this.btnNextQuestion.innerHTML = '💬 Step 1/3: Ask Name &amp; Ticket <kbd>SPACE</kbd>';
+      this.btnNextQuestion.textContent = '► STEP 1/3: ASK NAME & TICKET [SPACE]';
     } else if (!g.askedPass) {
-      this.btnNextQuestion.innerHTML = '💬 Step 2/3: Ask Secret Password <kbd>SPACE</kbd>';
+      this.btnNextQuestion.textContent = '► STEP 2/3: ASK PASSWORD [SPACE]';
     } else if (!g.askedInspect) {
-      this.btnNextQuestion.innerHTML = '💬 Step 3/3: Inspect Shoes &amp; Outfit <kbd>SPACE</kbd>';
+      this.btnNextQuestion.textContent = '► STEP 3/3: CHECK BOOTS [SPACE]';
     } else {
       this.btnNextQuestion.classList.add('complete');
-      this.btnNextQuestion.innerHTML = '✔ All 3 Checked! Choose Verdict ➔ <kbd>F</kbd> or <kbd>X</kbd>';
+      this.btnNextQuestion.textContent = '* ALL CHECKED -- MAKE VERDICT [F / X]';
     }
   }
 
@@ -384,7 +365,7 @@ class UIController {
     if (!this.activeGuest || this.activeGuest.cluesFound.length === 0) {
       const span = document.createElement('span');
       span.className = 'clue-placeholder';
-      span.innerHTML = '🕵️ Press <kbd>SPACE</kbd> (or <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>) to question this visitor step by step!';
+      span.textContent = 'PRESS [SPACE] OR [1][2][3] TO INTERROGATE';
       this.elCluesStrip.appendChild(span);
       return;
     }
@@ -392,7 +373,7 @@ class UIController {
     for (const c of this.activeGuest.cluesFound) {
       const pill = document.createElement('span');
       pill.className = `clue-pill ${c.isGood ? 'good' : 'sus'}`;
-      pill.textContent = `${c.isGood ? '✔' : '⚠️'} ${c.text}`;
+      pill.textContent = `${c.isGood ? '[OK]' : '[!]'} ${c.text}`;
       this.elCluesStrip.appendChild(pill);
     }
   }
@@ -405,9 +386,9 @@ class UIController {
     }
 
     if (hourIndex >= 2) {
-      html += `<div class="rule-item"><strong>VIP Roster Costumes:</strong><br/>`;
+      html += `<div class="rule-item"><strong>VIP ROSTER COSTUMES:</strong><br/>`;
       html += window.GameData.VIP_ROSTER.map(
-        v => `• <b>${v.name}</b> → ${v.costume}`
+        v => `* <b>${v.name}</b> = ${v.costume}`
       ).join('<br/>');
       html += `</div>`;
     }
@@ -421,22 +402,23 @@ class UIController {
 
   updateGuestbookContent(hourIndex) {
     const rules = window.GameData.getRulesForHour(hourIndex);
-    let html = `<div class="gb-section"><h4>📜 Active Security Rules</h4>`;
+    let html = `<div class="gb-section"><h4>ACTIVE SECURITY ORDERS</h4>`;
     for (const r of rules) {
-      html += `<p style="margin-bottom:6px;">• <strong>${r.title}:</strong> ${r.desc}</p>`;
+      html += `<p style="margin-bottom:6px;">* <strong>${r.title}:</strong> ${r.desc}</p>`;
     }
     html += `</div>`;
 
-    html += `<div class="gb-section"><h4>🎃 Official VIP Guest Roster</h4>`;
+    html += `<div class="gb-section"><h4>VIP GUEST ROSTER</h4>`;
     for (const vip of window.GameData.VIP_ROSTER) {
-      html += `<div class="gb-guest-row"><span>${vip.name}</span><strong style="color:#ffd15c">${vip.costume}</strong></div>`;
+      html += `<div class="gb-guest-row"><span>${vip.name}</span><strong style="color:#ffcb47">${vip.costume}</strong></div>`;
     }
     html += `</div>`;
 
-    html += `<div class="gb-section"><h4>🦇 Gatekeeper Tips</h4>
-      <p>• Press <kbd>E</kbd> at the Front Door to question the next visitor.</p>
-      <p>• Press <kbd>SPACE</kbd> inside the dialogue to ask each question one by one!</p>
-      <p>• Press <kbd>SHIFT</kbd> to morph into a <b>Bat</b> and <kbd>J</kbd> / <kbd>Click</kbd> to Sonic Swoop &amp; catch fleeing crashers!</p>
+    html += `<div class="gb-section"><h4>CONTROLS MANUAL</h4>
+      <p>* <kbd>E</kbd> Interrogate guest at Front Door</p>
+      <p>* <kbd>SPACE</kbd> Ask next question in dialogue</p>
+      <p>* <kbd>SHIFT</kbd> Morph into Vampire Bat</p>
+      <p>* <kbd>J</kbd> / <kbd>CLICK</kbd> Sonic Swoop &amp; Catch Crasher</p>
     </div>`;
 
     this.gbBody.innerHTML = html;
@@ -459,11 +441,10 @@ class UIController {
     };
     window.GameData.drawVelvetSprite(vCtx, dummyVelvet, t);
 
-    // Draw magnifying glass icon by Velvet during inspection
     if (this.currentStep === 3) {
       vCtx.save();
       vCtx.translate(72, 42 + Math.sin(t * 8) * 4);
-      vCtx.strokeStyle = '#ffd15c';
+      vCtx.strokeStyle = '#ffcb47';
       vCtx.lineWidth = 2.5;
       vCtx.beginPath();
       vCtx.arc(0, 0, 9, 0, Math.PI * 2);
@@ -483,35 +464,25 @@ class UIController {
     });
     window.GameData.drawGuestSprite(gCtx, 53, 66, portraitGuest, t, 1.55);
 
-    // Step-Specific Visual Overlays on Guest Portrait
     if (this.currentStep === 1) {
-      // Floating mini Ticket Stub held up by the guest
       const ty = 44 + Math.sin(t * 7) * 3;
-      gCtx.fillStyle = this.activeGuest.step1Ok ? '#38f2af' : '#ff4d6d';
-      gCtx.strokeStyle = '#1b0b2e';
-      gCtx.lineWidth = 1.5;
-      gCtx.beginPath();
-      gCtx.roundRect(10, ty, 30, 16, 3);
-      gCtx.fill();
-      gCtx.stroke();
+      gCtx.fillStyle = this.activeGuest.step1Ok ? '#3cd688' : '#e83b55';
+      gCtx.strokeStyle = '#000';
+      gCtx.lineWidth = 2;
+      gCtx.fillRect(10, ty, 30, 16);
+      gCtx.strokeRect(10, ty, 30, 16);
     }
 
-    // Animated Nervous Sweat Drops if Guest gave a suspicious answer!
     if (this.guestReaction === 'sus') {
       const dropY = (t * 28) % 18;
       gCtx.fillStyle = '#5ce1ff';
-      gCtx.beginPath();
-      gCtx.arc(24, 24 + dropY, 3.2, 0, Math.PI * 2);
-      gCtx.arc(82, 28 + ((dropY + 9) % 18), 2.8, 0, Math.PI * 2);
-      gCtx.fill();
+      gCtx.fillRect(22, 22 + dropY, 4, 6);
+      gCtx.fillRect(80, 26 + ((dropY + 9) % 18), 4, 6);
     } else if (this.guestReaction === 'good') {
-      // Cute sparkle stars when check passes
       const pulse = 0.6 + 0.4 * Math.sin(t * 10);
-      gCtx.fillStyle = `rgba(56, 242, 175, ${pulse})`;
-      gCtx.beginPath();
-      gCtx.arc(20, 24, 3.5, 0, Math.PI * 2);
-      gCtx.arc(86, 22, 3, 0, Math.PI * 2);
-      gCtx.fill();
+      gCtx.fillStyle = `rgba(60, 214, 136, ${pulse})`;
+      gCtx.fillRect(18, 22, 5, 5);
+      gCtx.fillRect(84, 20, 5, 5);
     }
   }
 }

@@ -254,7 +254,7 @@ class MansionLevel {
     ctx.stroke();
 
     ctx.fillStyle = '#c2aee0';
-    ctx.font = '600 10px Fredoka, sans-serif';
+    ctx.font = '700 9px Silkscreen, monospace';
     ctx.textAlign = 'center';
     ctx.fillText('ATTIC CHIMNEY', 0, -52);
     ctx.restore();
@@ -340,7 +340,7 @@ class MansionLevel {
     ctx.stroke();
 
     ctx.fillStyle = alertGlow ? '#ff6e89' : '#c2aee0';
-    ctx.font = '600 10px Fredoka, sans-serif';
+    ctx.font = '700 9px Silkscreen, monospace';
     ctx.textAlign = 'center';
     ctx.fillText('BALCONY WINDOW', 0, -46);
     ctx.restore();
@@ -408,15 +408,20 @@ class MansionLevel {
     ctx.fillStyle = '#291347';
     ctx.strokeStyle = '#ff4d94';
     ctx.lineWidth = 2.5;
+    ctx.fillRect(-44, -5 - beat * 0.5, 88, 40);
+    ctx.strokeRect(-44, -5 - beat * 0.5, 88, 40);
+
+    // Speaker cones left & right
+    ctx.fillStyle = '#120621';
     ctx.beginPath();
-    ctx.roundRect(-42, -5 - beat * 0.5, 84, 40, 8);
+    ctx.arc(-30, 15, 7 + beat * 0.3, 0, Math.PI * 2);
+    ctx.arc(30, 15, 7 + beat * 0.3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.stroke();
 
     ctx.fillStyle = '#ffd15c';
-    ctx.font = '700 11px Fredoka, sans-serif';
+    ctx.font = '700 9px Silkscreen, monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('🎵 DJ BOOTH 🎵', 0, 18);
+    ctx.fillText('DJ BOOTH', 0, 18);
     ctx.restore();
   }
 
@@ -475,23 +480,19 @@ class MansionLevel {
         ctx.fillStyle = '#5c2c9c';
         ctx.strokeStyle = '#ffd15c';
         ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.roundRect(p.x, p.y, p.w, p.h, 8);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
       } else {
         // One-way wooden / balcony platform
         ctx.fillStyle = '#3b1e63';
         ctx.strokeStyle = '#8b4fff';
         ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(p.x, p.y, p.w, p.h, 6);
-        ctx.fill();
-        ctx.stroke();
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
 
         // Top highlight strip showing it's a jump-through platform
         ctx.fillStyle = '#b98cff';
-        ctx.fillRect(p.x + 6, p.y + 2, p.w - 12, 3);
+        ctx.fillRect(p.x + 4, p.y + 2, p.w - 8, 3);
       }
     }
 
@@ -501,14 +502,12 @@ class MansionLevel {
       ctx.fillStyle = '#d92b7a';
       ctx.strokeStyle = '#ffd15c';
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(bp.x, bp.y - pulse, bp.w, bp.h + pulse, [10, 10, 3, 3]);
-      ctx.fill();
-      ctx.stroke();
+      ctx.fillRect(bp.x, bp.y - pulse, bp.w, bp.h + pulse);
+      ctx.strokeRect(bp.x, bp.y - pulse, bp.w, bp.h + pulse);
 
       // Upward chevron arrows
       ctx.fillStyle = '#ffd15c';
-      ctx.font = '700 10px Fredoka, sans-serif';
+      ctx.font = '700 8px Silkscreen, monospace';
       ctx.textAlign = 'center';
       ctx.fillText('▲ BOUNCE ▲', bp.x + bp.w / 2, bp.y - 4);
     }
